@@ -1,0 +1,409 @@
+<title>Graphify Suchablauf</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: eine Spalte wie eine Schaltkarte. Oben der Suchablauf als Flussdiagramm mit Weichen,
+   darunter die Bau-Pipeline, die nur läuft, wenn noch kein Graph existiert. Bewusst nur dunkel. */
+:root {
+  --bg: #15110e;
+  --panel: #1f1915;
+  --panel-2: #2a221c;
+  --line: #43362c;
+  --fg: #f4ece4;
+  --muted: #b5a496;
+  --accent: #ff7a1a;
+  --gold: #ffc23d;
+  --yes: #3fd3a0;
+  --no: #ff8a9e;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.55 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+  background-image:
+    linear-gradient(var(--panel) 1px, transparent 1px),
+    linear-gradient(90deg, var(--panel) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(2rem, 6vw, 3.4rem); font-weight: 800; color: var(--accent); letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.25rem, 3.4vw, 1.7rem); font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+
+/* Kopf */
+header { display: flex; flex-direction: column; gap: 16px; }
+.lead { color: var(--muted); max-width: 64ch; font-size: 1.05rem; }
+.lead strong { color: var(--fg); font-weight: 600; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.tag.free { background: var(--yes); color: #0d241b; border-color: var(--yes); font-weight: 600; }
+
+/* Flussdiagramm */
+.section-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.section-head p { color: var(--muted); max-width: 64ch; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+button {
+  font: 600 0.9rem var(--body); color: #1a0e05; background: var(--accent);
+  border: 0; border-radius: 6px; padding: 10px 16px; cursor: pointer;
+}
+button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.ask { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+
+.flow { display: flex; flex-direction: column; align-items: stretch; }
+.node {
+  position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;
+  transition: border-color .25s, box-shadow .25s, transform .25s;
+}
+.node .num {
+  grid-row: span 2; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font: 600 0.85rem var(--mono); color: var(--accent); border: 1.5px solid var(--accent);
+}
+.node h3 { margin: 0; font-size: 1.02rem; font-weight: 600; line-height: 1.3; }
+.node .body { grid-column: 2; color: var(--muted); font-size: 0.94rem; min-width: 0; }
+.node .body ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.node.decision { border-style: dashed; border-color: var(--gold); }
+.node.decision .num { color: var(--gold); border-color: var(--gold); border-radius: 4px; transform: rotate(45deg); }
+.node.decision .num span { transform: rotate(-45deg); }
+.node.end { border-color: var(--accent); background: linear-gradient(180deg, #2b1a0e, var(--panel)); }
+.node.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 28px -6px var(--accent); transform: translateX(4px); }
+.node.decision.active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 28px -6px var(--gold); }
+
+.wire { width: 2px; height: 26px; margin-left: 34px; background: var(--line); position: relative; }
+.wire::after { content: ""; position: absolute; bottom: -1px; left: -4px; border: 5px solid transparent; border-top-color: var(--line); border-bottom: 0; }
+.wire.lit { background: var(--accent); }
+.wire.lit::after { border-top-color: var(--accent); }
+
+.branches { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.branch { border-radius: 8px; padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--line); min-width: 0; display: flex; flex-direction: column; gap: 6px; transition: border-color .25s; }
+.branch .lbl { font: 600 0.72rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.branch.yes .lbl { color: var(--yes); }
+.branch.no .lbl { color: var(--no); }
+.branch p { font-size: 0.9rem; color: var(--muted); }
+.branch.lit.yes { border-color: var(--yes); }
+.branch.lit.no { border-color: var(--no); }
+.mini { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.mini .branch { background: var(--panel); }
+
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.mode { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.mode b { display: block; color: var(--fg); font-family: var(--mono); font-size: 0.85rem; margin-bottom: 2px; }
+.mode span { font-size: 0.88rem; }
+
+.conf { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.conf span { font: 600 0.7rem var(--mono); letter-spacing: .06em; padding: 3px 8px; border-radius: 4px; border: 1px solid; }
+.c-ex { color: var(--yes); border-color: var(--yes); }
+.c-in { color: var(--gold); border-color: var(--gold); }
+.c-am { color: var(--no); border-color: var(--no); }
+
+/* Pipeline */
+.pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; counter-reset: p; }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.stage .k { font: 600 0.72rem var(--mono); color: var(--accent); letter-spacing: .1em; }
+.stage h4 { margin: 0; font-size: 0.98rem; font-weight: 600; line-height: 1.3; }
+.stage p { font-size: 0.86rem; color: var(--muted); }
+.stage.split { grid-column: span 2; }
+.split-in { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.split-in div { background: var(--panel-2); border-radius: 6px; padding: 8px 10px; font-size: 0.84rem; color: var(--muted); min-width: 0; }
+.split-in b { color: var(--fg); display: block; font-size: 0.86rem; }
+.free-note { color: var(--yes); }
+.cost-note { color: var(--gold); }
+
+.outputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.out { border: 1px solid var(--accent); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.out .mono { color: var(--accent); font-weight: 600; font-size: 0.95rem; }
+.out p { color: var(--muted); font-size: 0.88rem; }
+
+/* Warum spart das */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cmp { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cmp h3 { margin: 0; font-size: 1rem; }
+.cmp p { color: var(--muted); font-size: 0.92rem; }
+.bar { height: 10px; border-radius: 5px; background: var(--panel-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--no); }
+.cmp.good .bar i { background: var(--yes); }
+.fineprint { color: var(--muted); font-size: 0.82rem; margin-top: 12px; max-width: 70ch; }
+
+/* Befehle + Regeln */
+.cols { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
+.cmds { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 0; overflow-x: auto; min-width: 0; }
+.cmds div { display: grid; grid-template-columns: minmax(0, auto) 1fr; gap: 14px; padding: 8px 16px; border-bottom: 1px solid var(--panel-2); align-items: baseline; }
+.cmds div:last-child { border-bottom: 0; }
+.cmds code { background: none; border: 0; padding: 0; color: var(--gold); white-space: nowrap; }
+.cmds span { color: var(--muted); font-size: 0.88rem; }
+.rules { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.rules h3 { margin: 0 0 8px; font-size: 1rem; }
+.rules ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.9rem; display: flex; flex-direction: column; gap: 6px; }
+
+footer { color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--line); padding-top: 18px; }
+footer a { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .branches, .duo, .compare, .cols, .split-in, .outputs { grid-template-columns: 1fr; }
+  .pipe { grid-template-columns: 1fr 1fr; }
+  .stage.split { grid-column: span 2; }
+}
+@media (max-width: 420px) {
+  .pipe { grid-template-columns: 1fr; }
+  .stage.split { grid-column: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .node, .branch { transition: none; }
+  .node.active { transform: none; }
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Skill gelernt · graphify v0.9</span>
+  <h1>So suche ich Infos mit Graphify</h1>
+  <p class="lead">Graphify macht aus einem Ordner (Code, Doku, PDFs, Bilder, Videos) einen <strong>Wissensgraphen</strong>. Statt bei jeder Frage dutzende Dateien neu zu lesen, laufe ich durch einen kleinen Ausschnitt dieses Graphen. Das spart Tokens, und genau darum geht es im Reel.</p>
+  <div class="tags"><span class="tag free">Free</span><span class="tag">Open Source · Apache-2.0</span><span class="tag">Claude Code · Codex · Cursor u. a.</span></div>
+</header>
+
+<section>
+  <div class="section-head">
+    <span class="eyebrow">Ablauf pro Frage</span>
+    <h2>Was ich durchlaufe, wenn du mich etwas fragst</h2>
+    <p>Beispielfrage: <em>„Wie hängt der Login mit der Datenbank zusammen?“</em> Gestrichelt umrandete Kästen sind Weichen, an denen ich entscheide.</p>
+    <div class="controls">
+      <button id="play" type="button">Ablauf abspielen</button>
+      <button id="reset" type="button" class="ghost">Zurücksetzen</button>
+      <span class="ask" id="status" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <div class="flow" id="flow">
+    <div class="node" data-step="1">
+      <div class="num">1</div>
+      <h3>Frage kommt rein</h3>
+      <div class="body">Fragen zu einem Projekt, seiner Architektur oder seinen Dateien lösen den Skill aus, vor allem wenn es den Ordner <code>graphify-out/</code> schon gibt.</div>
+    </div>
+    <div class="wire" data-step="2"></div>
+
+    <div class="node decision" data-step="2">
+      <div class="num"><span>?</span></div>
+      <h3>Gibt es schon <code>graphify-out/graph.json</code>?</h3>
+      <div class="body">
+        <div class="branches">
+          <div class="branch yes" data-lit="2">
+            <span class="lbl">Ja · Schnellweg</span>
+            <p>Bau-Schritte 1–5 überspringen. Nicht neu scannen, nicht nach Ordnern fragen. Weiter mit Schritt 3.</p>
+          </div>
+          <div class="branch no">
+            <span class="lbl">Nein · Lohnt sich ein Graph?</span>
+            <div class="mini">
+              <div class="branch no">
+                <span class="lbl">Nein</span>
+                <p>Eine einzelne gezielte Suche: direkt mit <code>grep</code> + <code>Read</code>, das ist schneller und kostet nichts. Ich erwähne, dass ein Graph möglich wäre.</p>
+              </div>
+              <div class="branch yes">
+                <span class="lbl">Ja</span>
+                <p>Viele Fragen erwartet, großes oder fremdes Projekt, Verbindungen Doku ↔ Code: <strong>Graph bauen</strong> (Pipeline unten), dann weiter mit Schritt 3.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wire" data-step="3"></div>
+
+    <div class="node" data-step="3">
+      <div class="num">3</div>
+      <h3>Frage in die Sprache des Graphen übersetzen</h3>
+      <div class="body">
+        Die Suche im Graphen vergleicht nur Wortteile, ohne Synonyme und ohne Übersetzung. Deshalb:
+        <ul>
+          <li>Wortliste aus allen Knotennamen ziehen (<code>.vocab.txt</code>)</li>
+          <li>bis zu 12 passende Wörter <strong>nur aus dieser Liste</strong> wählen, z. B. „Login“ → <code>auth</code>, <code>session</code>, <code>token</code></li>
+          <li>dir die Auswahl offen zeigen: <code>Query expanded to: […]</code></li>
+          <li>Passt kein Wort, sage ich das ehrlich und höre auf</li>
+        </ul>
+      </div>
+    </div>
+    <div class="wire" data-step="4"></div>
+
+    <div class="node decision" data-step="4">
+      <div class="num"><span>?</span></div>
+      <h3>Wie laufe ich durch den Graphen?</h3>
+      <div class="body">
+        Startpunkt sind die 1–3 Knoten, deren Name am besten passt.
+        <div class="duo">
+          <div class="mode"><b>BFS · Standard</b><span>„Womit ist X verbunden?“ Breit, die nächsten Nachbarn zuerst.</span></div>
+          <div class="mode"><b>DFS · --dfs</b><span>„Wie kommt X zu Y?“ Eine Kette bis zu 6 Schritte tief verfolgen.</span></div>
+        </div>
+        <p style="margin-top:8px">Optional begrenzt <code>--budget 1500</code> die Antwort auf N Tokens. Für zwei feste Punkte gibt es <code>graphify path "A" "B"</code>.</p>
+      </div>
+    </div>
+    <div class="wire" data-step="5"></div>
+
+    <div class="node" data-step="5">
+      <div class="num">5</div>
+      <h3>Teilgraph lesen</h3>
+      <div class="body">
+        Knotennamen, Beziehungen der Kanten, Fundstelle (<code>source_location</code>) und wie sicher jede Kante ist:
+        <div class="conf"><span class="c-ex">EXTRACTED · steht so im Code</span><span class="c-in">INFERRED · abgeleitet</span><span class="c-am">AMBIGUOUS · unsicher</span></div>
+      </div>
+    </div>
+    <div class="wire" data-step="6"></div>
+
+    <div class="node" data-step="6">
+      <div class="num">6</div>
+      <h3>Antworten, nur mit dem, was im Graphen steht</h3>
+      <div class="body">Jede konkrete Aussage mit Fundstelle, z. B. <code>auth/login.py L42</code>. Fehlt etwas, sage ich das, statt Verbindungen zu erfinden. Gute Antworten kann ich mit <code>save-result</code> zurück in den Graphen speichern.</div>
+    </div>
+    <div class="wire" data-step="7"></div>
+
+    <div class="node end" data-step="7">
+      <div class="num">7</div>
+      <h3>Weiter erkunden</h3>
+      <div class="body">Jede Antwort endet mit einem Angebot: „Das hängt mit X zusammen. Soll ich tiefer reingehen?“ Der Graph ist die Karte, ich bin der Guide.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <span class="eyebrow">Nur wenn noch kein Graph da ist</span>
+    <h2>Die Bau-Pipeline hinter <code>/graphify .</code></h2>
+    <p>Läuft einmal. Danach hält <code>--update</code> den Graphen aktuell und liest nur geänderte Dateien neu.</p>
+  </div>
+  <div class="pipe">
+    <div class="stage"><span class="k">0 · OPTIONAL</span><h4>GitHub-Repo klonen</h4><p>Wenn eine URL oder mehrere Pfade übergeben wurden, werden sie zu einem Graphen zusammengeführt.</p></div>
+    <div class="stage"><span class="k">1 · SETUP</span><h4>Python finden, Installation prüfen</h4><p>Merkt sich Interpreter und Projektordner in <code>graphify-out/</code>.</p></div>
+    <div class="stage"><span class="k">2 · DETECT</span><h4>Dateien erkennen</h4><p>Zählt Code, Doku, PDFs, Bilder, Videos. Bei über 500 Dateien frage ich, welcher Unterordner. Sensible Dateien werden übersprungen.</p></div>
+    <div class="stage"><span class="k">2.5 · OPTIONAL</span><h4>Video und Audio abtippen</h4><p>Mit Whisper wird daraus ein Textdokument.</p></div>
+    <div class="stage split"><span class="k">3 · EXTRAHIEREN, PARALLEL</span><h4>Dinge und Beziehungen herausziehen</h4>
+      <div class="split-in">
+        <div><b>A · Struktur (AST)</b>Code mit tree-sitter: Funktionen, Klassen, Aufrufe, Importe. <span class="free-note">Lokal, ohne KI, kostenlos.</span></div>
+        <div><b>B · Bedeutung</b>Doku, PDFs, Bilder über parallele Subagenten. <span class="cost-note">Kostet Tokens.</span> Ein Cache überspringt bereits gelesene Dateien.</div>
+      </div>
+      <p style="margin-top:6px">C · Beides zusammenführen, doppelte Knoten entfernen.</p>
+    </div>
+    <div class="stage"><span class="k">4 · BAUEN</span><h4>Graph, Cluster, Analyse</h4><p>NetworkX-Graph, Leiden-Clustering zu Themengruppen, „God Nodes“ (zentrale Knoten), überraschende Verbindungen, Vorschlagsfragen.</p></div>
+    <div class="stage"><span class="k">4.5 · CHECK</span><h4>Gesundheitscheck</h4><p>Ein kleinerer Graph überschreibt nie einen größeren, guten Graphen (außer mit <code>--force</code>).</p></div>
+    <div class="stage"><span class="k">5 · BENENNEN</span><h4>Themengruppen benennen</h4><p>Ich gebe jeder Gruppe einen lesbaren Namen, die Fragen werden damit neu formuliert.</p></div>
+    <div class="stage"><span class="k">6–9 · AUSGABE</span><h4>Exportieren und aufräumen</h4><p>HTML, optional Obsidian, Wiki, Neo4j. Manifest für <code>--update</code> speichern und Token-Kosten in <code>cost.json</code> notieren.</p></div>
+  </div>
+  <div class="outputs">
+    <div class="out"><span class="mono">graph.html</span><p>Interaktiver Graph zum Anklicken im Browser.</p></div>
+    <div class="out"><span class="mono">GRAPH_REPORT.md</span><p>Bericht auf Klartext: God Nodes, überraschende Verbindungen, Vorschlagsfragen.</p></div>
+    <div class="out"><span class="mono">graph.json</span><p>Rohdaten, die ich bei jeder Frage abfrage. Bleibt über Sitzungen hinweg erhalten.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <span class="eyebrow">Warum der $20-Plan länger hält</span>
+    <h2>Lesen kostet, Nachschlagen kaum</h2>
+  </div>
+  <div class="compare">
+    <div class="cmp">
+      <h3>Ohne Graph</h3>
+      <div class="bar" aria-hidden="true"><i style="width:100%"></i></div>
+      <p>Bei jeder Frage suche ich mit <code>grep</code> und lese ganze Dateien, oft dieselben immer wieder. Das füllt das Kontextfenster und verbraucht dein Limit.</p>
+    </div>
+    <div class="cmp good">
+      <h3>Mit Graph</h3>
+      <div class="bar" aria-hidden="true"><i style="width:12%"></i></div>
+      <p>Einmal bauen (Code kostenlos), danach nur einen kleinen Teilgraphen lesen. Ein optionaler Hook erinnert mich vor jedem <code>Glob</code> und <code>Grep</code> daran, zuerst in <code>GRAPH_REPORT.md</code> zu schauen.</p>
+    </div>
+  </div>
+  <p class="fineprint">Die Balken sind eine Veranschaulichung, keine Messung. Die Zahl „71,5× weniger Tokens“ stammt aus Werbung für das Projekt und ist nicht unabhängig geprüft. Wie viel du sparst, hängt von der Projektgröße ab und davon, wie viele Fragen du stellst.</p>
+</section>
+
+<section>
+  <div class="cols">
+    <div>
+      <div class="section-head"><span class="eyebrow">Spickzettel</span><h2>Befehle</h2></div>
+      <div class="cmds">
+        <div><code>pip install graphifyy</code><span>Installieren (Paketname mit zwei y)</span></div>
+        <div><code>graphify install</code><span>Skill in Claude Code einrichten</span></div>
+        <div><code>/graphify .</code><span>Graph für aktuellen Ordner bauen</span></div>
+        <div><code>/graphify query "…"</code><span>Frage stellen (BFS)</span></div>
+        <div><code>/graphify query "…" --dfs</code><span>Einer Kette folgen</span></div>
+        <div><code>/graphify path "A" "B"</code><span>Kürzester Weg zwischen zwei Begriffen</span></div>
+        <div><code>/graphify explain "X"</code><span>Einen Knoten erklären</span></div>
+        <div><code>/graphify . --update</code><span>Nur geänderte Dateien neu lesen</span></div>
+        <div><code>graphify claude install</code><span>Immer an: Abschnitt in CLAUDE.md</span></div>
+        <div><code>graphify hook install</code><span>Nach jedem Commit neu bauen</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-head"><span class="eyebrow">Ehrlichkeitsregeln</span><h2>Was ich nie mache</h2></div>
+      <div class="rules">
+        <ul>
+          <li>Eine Kante erfinden. Wenn ich unsicher bin, markiere ich sie als AMBIGUOUS.</li>
+          <li>Wörter für die Suche ausdenken, die nicht im Graphen stehen.</li>
+          <li>Die Warnung bei großen Projekten überspringen.</li>
+          <li>Die Token-Kosten im Bericht verschweigen.</li>
+          <li>Nach einem API-Key fragen. Code braucht keinen, Doku übernehme ich selbst als KI.</li>
+          <li>Die HTML-Ansicht bei über 5.000 Knoten ohne Warnung erzeugen.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Quelle: der Skill selbst (<code>graphify/skill.md</code> und <code>references/query.md</code> aus dem PyPI-Paket <code>graphifyy</code> 0.9.104) · Projekt: <a href="https://github.com/safishamsi/graphify">github.com/safishamsi/graphify</a>
+</footer>
+</div>
+
+<script>
+(function () {
+  var flow = document.getElementById('flow');
+  var status = document.getElementById('status');
+  var labels = {
+    1: 'Frage kommt rein …',
+    2: 'Graph vorhanden? Ja → Schnellweg',
+    3: 'Wörter aus dem Graph-Vokabular wählen …',
+    4: 'BFS von den besten Startknoten …',
+    5: 'Teilgraph mit Fundstellen lesen …',
+    6: 'Antwort nur aus dem Graphen …',
+    7: 'Fertig. Tiefer reingehen?'
+  };
+  var timer = null;
+  function clear() {
+    flow.querySelectorAll('.active').forEach(function (n) { n.classList.remove('active'); });
+    flow.querySelectorAll('.lit').forEach(function (n) { n.classList.remove('lit'); });
+  }
+  function show(step) {
+    flow.querySelectorAll('.node.active').forEach(function (n) { n.classList.remove('active'); });
+    var node = flow.querySelector('.node[data-step="' + step + '"]');
+    var wire = flow.querySelector('.wire[data-step="' + step + '"]');
+    if (wire) wire.classList.add('lit');
+    if (node) node.classList.add('active');
+    flow.querySelectorAll('[data-lit="' + step + '"]').forEach(function (b) { b.classList.add('lit'); });
+    status.textContent = labels[step] || '';
+  }
+  function reset() { if (timer) clearInterval(timer); timer = null; clear(); status.textContent = ''; }
+  document.getElementById('play').addEventListener('click', function () {
+    reset();
+    var step = 1;
+    show(step);
+    timer = setInterval(function () {
+      step += 1;
+      if (step > 7) { clearInterval(timer); timer = null; return; }
+      show(step);
+    }, 1400);
+  });
+  document.getElementById('reset').addEventListener('click', reset);
+})();
+</script>
