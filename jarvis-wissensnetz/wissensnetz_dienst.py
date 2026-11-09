@@ -22,11 +22,12 @@ from datetime import datetime
 from pathlib import Path
 
 from jarvis_wissen import lade_config
+from gespraeche_import import alles_importieren
 
 HIER = Path(__file__).resolve().parent
 LOG = HIER / "wissensnetz.log"
 STATUS = HIER / "status.json"
-IGNORIEREN = {"graphify-out", ".git", "__pycache__"}
+IGNORIEREN = {"graphify-out", ".git", "__pycache__", "_import"}
 
 
 def log(text: str) -> None:
@@ -112,6 +113,11 @@ def main() -> None:
     ruhe = float(cfg.get("warten_nach_aenderung_sekunden", 20))
 
     log(f"Wissensnetz-Dienst gestartet. Ordner: {ordner} · KI: {backend}")
+    (ordner / ".graphifyignore").write_text("_import/\n", encoding="utf-8")
+    try:
+        alles_importieren()
+    except Exception as fehler:
+        log(f"Gespräche-Import fehlgeschlagen: {fehler}")
     letzter = momentaufnahme(ordner)
     if letzter:
         # Beim Start immer einmal abgleichen: erfasst auch Änderungen, die
@@ -125,8 +131,18 @@ def main() -> None:
         return
 
     geaendert_seit: float | None = None
+    letzter_import = 0.0
+    import_alle = float(cfg.get("gespraeche_import_minuten", 5)) * 60
     while True:
         time.sleep(intervall)
+        if time.time() - letzter_import >= import_alle:
+            letzter_import = time.time()
+            try:
+                neu = alles_importieren()  # schreibt neue Gespräche in den Ordner
+                if neu:
+                    log(f"{neu} Claude-Gespräche übernommen.")
+            except Exception as fehler:
+                log(f"Gespräche-Import fehlgeschlagen: {fehler}")
         jetzt = momentaufnahme(ordner)
         if jetzt != letzter:
             letzter = jetzt

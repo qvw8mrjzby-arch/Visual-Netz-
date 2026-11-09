@@ -20,6 +20,23 @@ Dein Ordner  ──►  Wissensnetz-Dienst  ──►  graph.json  ──►  ja
    - richtet den Autostart ein und startet den Dienst sofort.
 3. Dateien in den Wissens-Ordner legen: Notizen (`.md`, `.txt`), PDFs, Word, Excel, Bilder, Code. Nach etwa 20 Sekunden Ruhe baut sich das Netz neu.
 
+## Was in Jarvis' Gehirn landet
+
+```
+JarvisWissen\
+  marketing\    Startwissen: Hooks, Copywriting, Kurzvideo-Strategie, Funnel, Kennzahlen
+  fakten\       gesicherte Fakten, die Claude mit dem Skill "jarvis-merken" einträgt
+  gespraeche\   deine Claude-Gespräche als Text (automatisch)
+  _import\      hier die Export-ZIP aus der Claude-App ablegen
+```
+
+**Gespräche mit Claude:**
+- **Claude Code auf diesem PC:** wird alle 5 Minuten automatisch übernommen.
+- **Claude-App / claude.ai:** dort kommt kein Programm direkt ran. Unter Einstellungen → Datenschutz → Daten exportieren die ZIP anfordern und in `JarvisWissen\_import` legen. Neue Exporte einfach dazulegen.
+- **Gezielt merken:** Der Skill `jarvis-merken` bringt Claude bei, gesicherte Fakten (über dich, deine Marken, Marketing-Erkenntnisse mit Zahlen) sauber in `fakten\` einzutragen. Sag einfach „merk dir für Jarvis …“. Das Installationsskript legt ihn für Claude Code an; in der Claude-App lädst du `claude-skill\jarvis-merken\SKILL.md` unter Einstellungen → Fähigkeiten hoch.
+
+Passwörter, Keys und Kontodaten gehören nicht in diese Ordner. Graphify schickt Dokumente zum Lesen an die gewählte KI.
+
 ## In Jarvis einbauen
 
 ```python

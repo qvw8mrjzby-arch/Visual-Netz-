@@ -81,6 +81,20 @@ $cfg.backend = $Backend
 $cfg | ConvertTo-Json | Set-Content (Join-Path $Hier "config.json") -Encoding UTF8
 Write-Host "Ordner: $Ordner"
 
+# 5b. Startwissen (Marketing) und Ordner fuer Fakten/Gespraeche
+Schritt "Marketing-Wissen und Gedaechtnis-Ordner anlegen"
+Copy-Item -Path (Join-Path $Hier "wissen\*") -Destination $Ordner -Recurse -Force
+foreach ($u in @("fakten", "gespraeche", "_import")) { New-Item -ItemType Directory -Force -Path (Join-Path $Ordner $u) | Out-Null }
+Write-Host "Marketing-Wissen kopiert nach $(Join-Path $Ordner 'marketing')"
+
+# 5c. Claude beibringen, Fakten fuer Jarvis zu speichern
+Schritt "Skill 'jarvis-merken' fuer Claude Code installieren"
+$SkillZiel = Join-Path $env:USERPROFILE ".claude\skills\jarvis-merken"
+New-Item -ItemType Directory -Force -Path $SkillZiel | Out-Null
+Copy-Item -Path (Join-Path $Hier "claude-skill\jarvis-merken\SKILL.md") -Destination $SkillZiel -Force
+Write-Host "Installiert: $SkillZiel"
+Write-Host "Fuer die Claude-App: SKILL.md unter Einstellungen > Faehigkeiten (Skills) hochladen."
+
 # 6. Autostart
 Schritt "Autostart einrichten"
 $Startup = [Environment]::GetFolderPath("Startup")
