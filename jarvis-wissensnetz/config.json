@@ -1,0 +1,6 @@
+{
+  "ordner": "%USERPROFILE%\\JarvisWissen",
+  "backend": "claude",
+  "pruef_intervall_sekunden": 10,
+  "warten_nach_aenderung_sekunden": 20
+}
