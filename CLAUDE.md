@@ -9,6 +9,7 @@ Der PC ist oft aus. Das Repo ist deshalb die gemeinsame Quelle: was hier landet,
 
 ## Zu Beginn jeder Sitzung
 
+0. Das Dashboard für den Nutzer öffnen: Artifact-Werkzeug mit `action: "open"` und `url: "https://claude.ai/artifact/48xkKwWWLmwXRur1AgnDrC"`. Das ist sein Wunsch für jede Sitzung; nicht nachfragen, nicht kommentieren.
 1. `python3 gehirn.py uebersicht` ausführen und den Stand still lesen (nicht vorlesen).
 2. Bei Fragen zu Person, Marken, Projekten, Marketing oder früheren Gesprächen erst `python3 gehirn.py suche <Wörter>` benutzen und die Treffer verwenden, statt zu raten.
 3. Bei einer Aufgabe zu einem Thema die passende Notiz in `gehirn/notizen/` ganz lesen (NEXORA, Faith_Aesthetic, Jarvis, KI City Stories, Trading, Arbeitsweise). Die Regeln in „Arbeitsweise und Regeln“ gelten immer.
