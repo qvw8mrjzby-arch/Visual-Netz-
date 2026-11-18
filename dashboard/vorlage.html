@@ -855,7 +855,7 @@ const landPunkte = (() => {
   return pts;
 })();
 const ZENTRUM = { lat: 51.1652, lon: 7.0671 }, RADAR_KM = 10;
-const STATUS_FARBE = { "ohne Website": "#4fe3ff", "kontaktiert": "#ffb35c", "Kunde": "#5df2a0", "kein Interesse": "#6b7080" };
+const STATUS_FARBE = { "ohne Website": "#4fe3ff", "sehr schlechte Website": "#ff5fc8", "kontaktiert": "#ffb35c", "Kunde": "#5df2a0", "kein Interesse": "#6b7080" };
 const radarAnsicht = document.getElementById("radar-ansicht"), rcv = document.getElementById("radar-cv"), rctx = rcv.getContext("2d");
 let RB = 0, RH = 0, rdpr = 1, radarStart = performance.now(), betriebe = [], radarFilter = null, gewaehlterBetrieb = null, radarDb = null, betriebeGeladen = false;
 function radarGroesse() { const r = rcv.getBoundingClientRect(); rdpr = Math.min(2, devicePixelRatio || 1); RB = r.width; RH = r.height; rcv.width = Math.round(RB * rdpr); rcv.height = Math.round(RH * rdpr); }
@@ -924,7 +924,7 @@ function radarMalen(t) {
 }
 function radarText() {
   const alle = betriebe.filter((b) => typeof b.lat === "number"), zaehl = (s) => alle.filter((b) => (b.status || "ohne Website") === s).length;
-  document.getElementById("radar-zeile").innerHTML = `<span><b>${alle.length}</b> Betriebe im Radar</span><span><b>${zaehl("ohne Website")}</b> ohne Website</span><span><b>${zaehl("kontaktiert")}</b> kontaktiert</span><span><b>${zaehl("Kunde")}</b> Kunden</span>`;
+  document.getElementById("radar-zeile").innerHTML = `<span><b>${alle.length}</b> Betriebe im Radar</span><span><b>${zaehl("ohne Website")}</b> ohne Website</span><span><b>${zaehl("sehr schlechte Website")}</b> sehr schlechte Website</span><span><b>${zaehl("kontaktiert")}</b> kontaktiert</span><span><b>${zaehl("Kunde")}</b> Kunden</span>`;
   const branchen = [...new Set(alle.map((b) => b.branche).filter(Boolean))].sort();
   document.getElementById("radar-filter").innerHTML = branchen.length ? [`<button type="button" data-b="" aria-pressed="${!radarFilter}">Alle</button>`, ...branchen.map((b) => `<button type="button" data-b="${esc(b)}" aria-pressed="${radarFilter === b}">${esc(b)}</button>`)].join("") : "";
   const leer = document.getElementById("radar-leer");

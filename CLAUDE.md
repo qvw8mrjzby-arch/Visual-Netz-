@@ -24,7 +24,15 @@ Das Dashboard (Reiter „Agenten“) zeigt laufende Claude-Sitzungen live. Bei l
 
 ## Website-Radar füllen (NEXORA)
 
-Der Reiter „Radar“ im Dashboard zeigt Betriebe in Solingen ohne Website als Punkte (Umkreis 10 km um 51.1652 N, 7.0671 O). Daten: Sammlung `betriebe` der Dashboard-Seite, eine Zeile pro Betrieb, Felder `name`, `branche` (z. B. „Elektriker“, „Friseur“, „Maler“, „Immobilienmakler“, „Kosmetik“), `adresse`, `lat`, `lon` (Zahlen), `status` („ohne Website“, „kontaktiert“, „Kunde“, „kein Interesse“), `notiz`, `quelle` (wo gefunden), `zeit`. Füllen nur mit echten, öffentlich gelisteten Betrieben aus Recherche (Branchenbuch, Google-Unternehmensprofil, Stadtportal); vorher prüfen, dass wirklich keine eigene Website existiert, und das in `quelle`/`notiz` festhalten. Nichts erfinden, keine Privatpersonen, keine privaten Kontaktdaten. Schreiben mit `ArtifactData` `batch`. Den Status ändert Eliano auch selbst in der Karte eines Punkts.
+Der Reiter „Radar“ im Dashboard zeigt Betriebe in Solingen ohne Website als Punkte (Umkreis 10 km um 51.1652 N, 7.0671 O). Daten: Sammlung `betriebe` der Dashboard-Seite, eine Zeile pro Betrieb, Felder `name`, `branche` (z. B. „Elektriker“, „Friseur“, „Maler“, „Immobilienmakler“, „Kosmetik“), `adresse`, `lat`, `lon` (Zahlen), `status` („ohne Website“, „sehr schlechte Website“, „kontaktiert“, „Kunde“, „kein Interesse“), `notiz`, `quelle` (wo gefunden), `zeit`. Füllen nur mit echten, öffentlich gelisteten Betrieben aus Recherche (Branchenbuch, Google-Unternehmensprofil, Stadtportal); vorher prüfen, dass wirklich keine eigene Website existiert, und das in `quelle`/`notiz` festhalten. Nichts erfinden, keine Privatpersonen, keine privaten Kontaktdaten. Schreiben mit `ArtifactData` `batch`. Den Status ändert Eliano auch selbst in der Karte eines Punkts.
+
+Erfahrungen aus der ersten Recherche (18.11.2026):
+- Ein fehlender Website-Link bei Gelbe Seiten beweist nichts: von 5 solchen Kandidaten (Elektro Picard, Birkel Elektro, Konrad GbR, Elektro Schoenenborn …) hatten 4 doch eine eigene Domain. Immer einzeln prüfen.
+- Beste Prüfquelle: der Google-Maps-Eintrag (Websuche nach „Name Solingen“), er zeigt das Feld „Website“ und exakte Koordinaten. Zusätzlich Das Telefonbuch („Homepage …“) und Creditreform-Firmeneintrag.
+- Gute Kandidaten-Listen: Gelbe Seiten je Branche (`gelbeseiten.de/branchen/<branche>/solingen`), Installateurverzeichnis der SWS Netze Solingen (PDF), Das Örtliche.
+- „sehr schlechte Website“: nur eintragen, wenn die Seite angesehen wurde (z. B. nicht mobil, kaputt, nur Baukasten-Platzhalter, kein Impressum); in `notiz` begründen, `status` = „sehr schlechte Website“.
+- Adressen-Geocoding (nominatim/photon) ist in der Cloud-Umgebung gesperrt; Koordinaten aus dem Google-Maps-Eintrag nehmen, sonst Stadtteil-Mitte und in `notiz` „Lage ungefähr“.
+- Die frühere Liste (~500 Betriebe) liegt vermutlich auf dem PC in Jarvis; sobald sie im Repo unter `gehirn/jarvis/` auftaucht, zuerst diese abgleichen (Dubletten vermeiden: gleicher Name + Straße = derselbe Betrieb).
 
 ## Während der Sitzung: merken
 
