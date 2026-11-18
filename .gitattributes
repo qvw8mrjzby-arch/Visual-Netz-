@@ -1,0 +1,2 @@
+# Gehirn-Dateien zeilenweise zusammenführen, damit iPad und PC gleichzeitig merken können
+gehirn/**/*.md merge=union

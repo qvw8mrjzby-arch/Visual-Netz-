@@ -26,3 +26,8 @@ Wenn unklar ist, ob etwas stimmt: kurz nachfragen statt raten.
 4. Dem Nutzer in einer Zeile sagen, was gespeichert wurde: „Für Jarvis gemerkt: …“
 
 Der Wissensnetz-Dienst merkt die Änderung und baut das Netz automatisch neu.
+
+## Auf dem iPad oder im Web (kein Zugriff auf den PC)
+Ist das Repo `Visual-Netz-` geöffnet (Datei `gehirn.py` vorhanden), dort speichern statt im PC-Ordner:
+`python3 gehirn.py merken <thema> "<Fakt>" --quelle "<Quelle>"`, danach `gehirn/` committen und pushen (Details in `CLAUDE.md` des Repos). Der PC holt es automatisch, sobald er läuft.
+Ohne Repo-Zugriff (z. B. normaler Chat in der Claude-App): am Ende eine Liste „Für Jarvis zum Merken“ im obigen Zeilenformat ausgeben, damit der Nutzer sie in einer Claude-Code-Sitzung mit dem Repo speichern lassen kann.

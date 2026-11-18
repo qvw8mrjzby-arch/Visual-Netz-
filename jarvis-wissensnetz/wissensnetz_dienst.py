@@ -23,6 +23,7 @@ from pathlib import Path
 
 from jarvis_wissen import lade_config
 from gespraeche_import import alles_importieren
+from gehirn_sync import synchronisieren
 
 HIER = Path(__file__).resolve().parent
 LOG = HIER / "wissensnetz.log"
@@ -104,6 +105,14 @@ def netz_bauen(ordner: Path, backend: str) -> bool:
     return False
 
 
+def gehirn_sync() -> None:
+    """Gehirn mit dem iPad abgleichen (über GitHub). Fehler stoppen den Dienst nie."""
+    try:
+        synchronisieren(log)
+    except Exception as fehler:
+        log(f"Gehirn-Sync fehlgeschlagen: {fehler}")
+
+
 def main() -> None:
     cfg = lade_config()
     ordner = Path(cfg["ordner"])
@@ -113,6 +122,7 @@ def main() -> None:
     ruhe = float(cfg.get("warten_nach_aenderung_sekunden", 20))
 
     log(f"Wissensnetz-Dienst gestartet. Ordner: {ordner} · KI: {backend}")
+    gehirn_sync()  # was auf dem iPad gemerkt wurde, während der PC aus war
     (ordner / ".graphifyignore").write_text("_import/\n", encoding="utf-8")
     try:
         alles_importieren()
@@ -132,6 +142,8 @@ def main() -> None:
 
     geaendert_seit: float | None = None
     letzter_import = 0.0
+    letzter_sync = time.time()
+    sync_alle = float(cfg.get("gehirn_sync_minuten", 2)) * 60
     import_alle = float(cfg.get("gespraeche_import_minuten", 5)) * 60
     while True:
         time.sleep(intervall)
@@ -143,6 +155,9 @@ def main() -> None:
                     log(f"{neu} Claude-Gespräche übernommen.")
             except Exception as fehler:
                 log(f"Gespräche-Import fehlgeschlagen: {fehler}")
+        if time.time() - letzter_sync >= sync_alle:
+            letzter_sync = time.time()
+            gehirn_sync()  # neue Dateien werden unten erkannt und ins Netz gebaut
         jetzt = momentaufnahme(ordner)
         if jetzt != letzter:
             letzter = jetzt

@@ -78,6 +78,14 @@ New-Item -ItemType Directory -Force -Path $Ordner | Out-Null
 $cfg = Get-Content (Join-Path $Hier "config.json") -Raw | ConvertFrom-Json
 $cfg.ordner = $Ordner
 $cfg.backend = $Backend
+# Gehirn-Abgleich mit dem iPad: liegt dieser Ordner in einem Git-Klon des Repos, wird er automatisch benutzt
+$Repo = Split-Path -Parent $Hier
+if ((Test-Path (Join-Path $Repo ".git")) -and (Test-Path (Join-Path $Repo "gehirn")) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+    $cfg | Add-Member -NotePropertyName gehirn_repo -NotePropertyValue $Repo -Force
+    Write-Host "Gehirn-Abgleich mit dem iPad aktiv: $Repo" -ForegroundColor Green
+} else {
+    Write-Host "Kein Git-Klon gefunden: Gehirn-Abgleich mit dem iPad bleibt aus (siehe README, 'iPad verbinden')."
+}
 $cfg | ConvertTo-Json | Set-Content (Join-Path $Hier "config.json") -Encoding UTF8
 Write-Host "Ordner: $Ordner"
 

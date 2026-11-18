@@ -37,6 +37,28 @@ JarvisWissen\
 
 Passwörter, Keys und Kontodaten gehören nicht in diese Ordner. Graphify schickt Dokumente zum Lesen an die gewählte KI.
 
+## iPad verbinden (zweites Gehirn)
+
+Claude auf dem iPad kommt nicht an deinen PC, aber immer an dieses GitHub-Repo. Deshalb liegt Jarvis' Gehirn zusätzlich im Repo-Ordner `gehirn/`. Jede Claude-Sitzung auf dem iPad liest es beim Start (Anleitung in `CLAUDE.md`) und schreibt neue Fakten, Notizen und Gesprächs-Zusammenfassungen dorthin. Das funktioniert auch, wenn der PC aus ist.
+
+```
+iPad (Claude)  ──►  GitHub-Repo gehirn/  ◄──►  gehirn_sync.py  ◄──►  JarvisWissen  ──►  Graphify  ──►  Jarvis
+```
+
+| Repo `gehirn/` | PC `JarvisWissen\` |
+|---|---|
+| `fakten\` | `fakten\` |
+| `notizen\` | `notizen\` |
+| `gespraeche\` | `gespraeche_ipad\` |
+
+Einrichten auf dem PC:
+1. [Git für Windows](https://git-scm.com/download/win) installieren und das Repo klonen, z. B. `git clone https://github.com/qvw8mrjzby-arch/Visual-Netz- C:\Jarvis\Visual-Netz-`.
+2. In diesem Klon `jarvis-wissensnetz\installieren.bat` starten. Das Skript erkennt den Klon und trägt ihn als `gehirn_repo` in `config.json` ein. (Schon installiert? Dann `gehirn_repo` in `config.json` von Hand auf den Klon-Ordner setzen und den Dienst neu starten.)
+
+Danach holt der Dienst beim Start und alle 2 Minuten, was auf dem iPad gemerkt wurde, und schickt neue PC-Fakten zurück. Haben beide Seiten dieselbe Datei geändert, werden die Zeilen zusammengeführt; gelöscht wird beim Abgleich nie etwas. Die rohen Claude-Code-Verläufe aus `gespraeche\` bleiben auf dem PC und gehen nicht ins Repo.
+
+Von Hand abgleichen: `python gehirn_sync.py`. Im Repo selbst suchen: `python gehirn.py suche Hooks`.
+
 ## In Jarvis einbauen
 
 ```python
@@ -88,6 +110,8 @@ Jarvis bekommt immer den neuesten Stand: `WissensNetz` merkt bei jedem Aufruf, o
 | `backend` | `claude`, `gemini` oder `ollama` |
 | `pruef_intervall_sekunden` | Wie oft der Dienst nachschaut (Standard 10) |
 | `warten_nach_aenderung_sekunden` | Wie lange nach der letzten Änderung gewartet wird, bevor neu gebaut wird (Standard 20) |
+| `gehirn_repo` | Ordner des Git-Klons für den Abgleich mit dem iPad (leer = aus) |
+| `gehirn_sync_minuten` | Wie oft mit dem iPad abgeglichen wird (Standard 2) |
 
 ## Ausschalten
 
