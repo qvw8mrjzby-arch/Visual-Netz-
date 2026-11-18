@@ -21,6 +21,10 @@ Im Dashboard kann der Nutzer Gedanken festhalten („Gedanken festhalten“). Si
 
 Das Dashboard (Reiter „Agenten“) zeigt laufende Claude-Sitzungen live. Bei längeren Aufgaben zusätzlich den aktuellen Schritt melden: mit `ArtifactData` `set` in die Sammlung `live` der Dashboard-Seite, Dokument-ID = eigene Sitzungs-ID (`get_session` ohne Argument), Felder `sitzung` (dieselbe ID), `agent` (kurzer Name, z. B. „Recherche“), `aufgabe` (ein Satz, woran gerade gearbeitet wird), `schritt` (optional), `zeit` (ISO-Zeit). Beim Wechsel der Aufgabe aktualisieren (`if_version` mitgeben), am Ende `aufgabe` auf „fertig: …“ setzen. Keine Geheimnisse oder privaten Inhalte hineinschreiben.
 
+## Website-Radar füllen (NEXORA)
+
+Der Reiter „Radar“ im Dashboard zeigt Betriebe in Solingen ohne Website als Punkte (Umkreis 10 km um 51.1652 N, 7.0671 O). Daten: Sammlung `betriebe` der Dashboard-Seite, eine Zeile pro Betrieb, Felder `name`, `branche` (z. B. „Elektriker“, „Friseur“, „Maler“, „Immobilienmakler“, „Kosmetik“), `adresse`, `lat`, `lon` (Zahlen), `status` („ohne Website“, „kontaktiert“, „Kunde“, „kein Interesse“), `notiz`, `quelle` (wo gefunden), `zeit`. Füllen nur mit echten, öffentlich gelisteten Betrieben aus Recherche (Branchenbuch, Google-Unternehmensprofil, Stadtportal); vorher prüfen, dass wirklich keine eigene Website existiert, und das in `quelle`/`notiz` festhalten. Nichts erfinden, keine Privatpersonen, keine privaten Kontaktdaten. Schreiben mit `ArtifactData` `batch`. Den Status ändert Eliano auch selbst in der Karte eines Punkts.
+
 ## Während der Sitzung: merken
 
 Sagt der Nutzer etwas Dauerhaftes (über sich, Marken wie Faith_Aesthetic, Produkte, Preise, Ziele, Kunden, Entscheidungen mit Grund, Marketing-Ergebnisse mit Zahlen, belegte Recherche) oder sagt er „merk dir“, „Jarvis soll wissen“, „speichern“:
