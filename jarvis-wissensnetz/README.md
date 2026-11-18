@@ -50,6 +50,9 @@ iPad (Claude)  ──►  GitHub-Repo gehirn/  ◄──►  gehirn_sync.py  ◄
 | `fakten\` | `fakten\` |
 | `notizen\` | `notizen\` |
 | `gespraeche\` | `gespraeche_ipad\` |
+| `jarvis\` (nur Lesekopie) | Jarvis' eigenes Gehirn `C:\Users\Elian\jarvis\brain` (Einstellung `jarvis_gehirn`) |
+
+Jarvis' Gehirn wird nur gespiegelt, wenn das GitHub-Repo **privat** ist (der Dienst prüft das bei jedem Abgleich). Notizen, die nach Passwort, Key oder Token aussehen, werden übersprungen.
 
 Einrichten auf dem PC:
 1. [Git für Windows](https://git-scm.com/download/win) installieren und das Repo klonen, z. B. `git clone https://github.com/qvw8mrjzby-arch/Visual-Netz- C:\Jarvis\Visual-Netz-`.
@@ -112,6 +115,7 @@ Jarvis bekommt immer den neuesten Stand: `WissensNetz` merkt bei jedem Aufruf, o
 | `warten_nach_aenderung_sekunden` | Wie lange nach der letzten Änderung gewartet wird, bevor neu gebaut wird (Standard 20) |
 | `gehirn_repo` | Ordner des Git-Klons für den Abgleich mit dem iPad (leer = aus) |
 | `gehirn_sync_minuten` | Wie oft mit dem iPad abgeglichen wird (Standard 2) |
+| `jarvis_gehirn` | Jarvis' eigener Gehirn-Ordner, der als Lesekopie nach `gehirn/jarvis/` geht (leer = aus) |
 
 ## Ausschalten
 

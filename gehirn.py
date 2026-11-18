@@ -88,6 +88,11 @@ def uebersicht() -> str:
                 zeilen.append(f"- {kopf}  ({_rel(d)})")
             if len(dateien) > 10:
                 zeilen.append(f"- … und {len(dateien) - 10} ältere")
+    jarvis = sorted((GEHIRN / "jarvis").rglob("*.md")) if (GEHIRN / "jarvis").exists() else []
+    if jarvis:
+        ordner = sorted({str(p.parent.relative_to(GEHIRN / "jarvis")) for p in jarvis})
+        zeilen.append(f"\n## Jarvis' Gehirn vom PC ({len(jarvis)} Notizen, mit `suche` durchsuchen)")
+        zeilen.append("Ordner: " + ", ".join(o if o != "." else "(oberste Ebene)" for o in ordner))
     weitere = [p for b in WEITERE_QUELLEN if b.exists() for p in sorted(b.rglob("*.md"))]
     if weitere:
         zeilen.append("\n## Wissen (bei Bedarf lesen oder durchsuchen)")

@@ -11,6 +11,7 @@ Der PC ist oft aus. Das Repo ist deshalb die gemeinsame Quelle: was hier landet,
 
 1. `python3 gehirn.py uebersicht` ausführen und den Stand still lesen (nicht vorlesen).
 2. Bei Fragen zu Person, Marken, Projekten, Marketing oder früheren Gesprächen erst `python3 gehirn.py suche <Wörter>` benutzen und die Treffer verwenden, statt zu raten.
+3. Bei einer Aufgabe zu einem Thema die passende Notiz in `gehirn/notizen/` ganz lesen (NEXORA, Faith_Aesthetic, Jarvis, KI City Stories, Trading, Arbeitsweise). Die Regeln in „Arbeitsweise und Regeln“ gelten immer.
 
 ## Während der Sitzung: merken
 
@@ -65,5 +66,6 @@ dashboard.py              baut dashboard/gehirn-dashboard.html (3D-Netz + Agente
 gehirn/fakten/            ein Fakt pro Zeile: "- Datum · Fakt · Quelle: …"
 gehirn/notizen/           längere Notizen
 gehirn/gespraeche/        Zusammenfassungen von Claude-Gesprächen
+gehirn/jarvis/            Lesekopie von Jarvis' Gehirn vom PC (nicht hier bearbeiten, wird vom PC überschrieben)
 jarvis-wissensnetz/       PC-Seite: Graphify-Dienst, Jarvis-Anbindung, Sync, Marketing-Startwissen
 ```

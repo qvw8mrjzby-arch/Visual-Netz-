@@ -19,6 +19,7 @@
   --gespraeche: #78dcb0;
   --wissen: #9aaeff;
   --begriff: #c9d3e4;
+  --jarvis: #c792ea;
   --licht: #ffd27a;
   --nacht: #0d1528;
   --f-titel: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
@@ -175,7 +176,7 @@ canvas:active { cursor: grabbing; }
 <script>
 const DATEN = /*__DATEN__*/null;
 
-const FARBE = { kern: "--kern", fakten: "--fakten", notizen: "--notizen", gespraeche: "--gespraeche", wissen: "--wissen", begriff: "--begriff" };
+const FARBE = { kern: "--kern", fakten: "--fakten", notizen: "--notizen", gespraeche: "--gespraeche", wissen: "--wissen", jarvis: "--jarvis", begriff: "--begriff" };
 const css = getComputedStyle(document.documentElement);
 const farbe = (n) => css.getPropertyValue(FARBE[n] || "--begriff").trim();
 const knotenFarbe = (k) => farbe(k.art === "kern" ? "kern" : k.art === "begriff" ? "begriff" : k.bereich);
@@ -198,12 +199,12 @@ function vor(iso) {
 /* ---------- Kopfzahlen ---------- */
 const Z = DATEN.zahlen;
 document.getElementById("zahlen").innerHTML = [
-  ["Fakten", Z.fakten], ["Notizen", Z.notizen], ["Gespräche", Z.gespraeche], ["Wissens-Dateien", Z.wissen], ["Verbindungen", Z.verbindungen],
+  ["Fakten", Z.fakten], ["Notizen", Z.notizen], ["Gespräche", Z.gespraeche], ["Wissens-Dateien", Z.wissen], ["Jarvis-PC", Z.jarvis ?? 0], ["Verbindungen", Z.verbindungen],
 ].map(([t, w]) => `<div class="zahl"><span class="etikett">${t}</span><b>${w}</b></div>`).join("")
   + `<div class="zahl hell"><span class="etikett">Liest Claude beim Start</span><b>≈ ${Z.start_tokens.toLocaleString("de-DE")} Tokens</b></div>`;
 document.getElementById("fuss").textContent =
   `Stand: ${new Date(DATEN.erstellt).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" })} · erzeugt mit dashboard.py aus dem Repo Visual-Netz-`;
-document.getElementById("legende").innerHTML = [["kern", "Kern"], ["fakten", "Fakten"], ["notizen", "Notizen"], ["gespraeche", "Gespräche"], ["wissen", "Wissen"], ["begriff", "Begriffe"]]
+document.getElementById("legende").innerHTML = [["kern", "Kern"], ["fakten", "Fakten"], ["notizen", "Notizen"], ["gespraeche", "Gespräche"], ["wissen", "Wissen"], ["jarvis", "Jarvis-PC"], ["begriff", "Begriffe"]]
   .map(([k, t]) => `<span><i class="punkt" style="background:${farbe(k)}"></i>${t}</span>`).join("");
 
 /* ---------- Netz vorbereiten ---------- */

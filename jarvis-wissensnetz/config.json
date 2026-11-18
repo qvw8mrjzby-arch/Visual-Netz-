@@ -5,5 +5,6 @@
   "warten_nach_aenderung_sekunden": 20,
   "gespraeche_import_minuten": 5,
   "gehirn_repo": "",
-  "gehirn_sync_minuten": 2
+  "gehirn_sync_minuten": 2,
+  "jarvis_gehirn": "%USERPROFILE%\\jarvis\\brain"
 }

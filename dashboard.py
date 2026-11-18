@@ -29,6 +29,7 @@ BEREICHE = {
     "notizen": ("Notizen", gehirn.GEHIRN / "notizen"),
     "gespraeche": ("Gespräche", gehirn.GEHIRN / "gespraeche"),
     "wissen": ("Wissen", WISSEN),
+    "jarvis": ("Jarvis-PC", gehirn.GEHIRN / "jarvis"),
 }
 
 STOPP = set("""
@@ -183,6 +184,7 @@ def main() -> None:
             "notizen": len(list((gehirn.GEHIRN / "notizen").glob("*.md"))),
             "gespraeche": len(list((gehirn.GEHIRN / "gespraeche").glob("*.md"))),
             "wissen": len(list(WISSEN.rglob("*.md"))) if WISSEN.exists() else 0,
+            "jarvis": len(list((gehirn.GEHIRN / "jarvis").rglob("*.md"))) if (gehirn.GEHIRN / "jarvis").exists() else 0,
             "verbindungen": len(netz["kanten"]),
             "start_tokens": round(len(uebersicht) / 4),
         },
