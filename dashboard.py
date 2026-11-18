@@ -69,8 +69,33 @@ def _kurz(text: str, n: int = 70) -> str:
     return text if len(text) <= n else text[: n - 1].rstrip() + "…"
 
 
+def _galaxie(schluessel: str, datei: Path, kopf: str) -> tuple[str, str]:
+    """Jede Datei ist eine Galaxie; Wissen und Gespräche bilden je eine gemeinsame."""
+    if schluessel == "wissen":
+        return "wissen", "Marketing-Wissen"
+    if schluessel == "gespraeche":
+        return "gespraeche", "Gespräche"
+    if schluessel == "jarvis":
+        rel = datei.relative_to(BEREICHE["jarvis"][1])
+        teil = rel.parts[0] if len(rel.parts) > 1 else "allgemein"
+        return f"jarvis:{teil}", f"Jarvis · {teil}"
+    name = re.sub(r"\s*\(.*?\)", "", kopf).strip() or datei.stem
+    return f"{schluessel}:{datei.stem}", name
+
+
+def _erstes_datum(rel: str) -> str:
+    """Datum aus dem Dateinamen, sonst das Datum, an dem Git die Datei zuerst gesehen hat."""
+    treffer = re.search(r"(\d{4}-\d{2}-\d{2})", Path(rel).name)
+    if treffer:
+        return treffer.group(1)
+    zeilen = _git("log", "--format=%as", "--diff-filter=A", "--", rel).split()
+    return zeilen[-1] if zeilen else datetime.now().date().isoformat()
+
+
 def netz_bauen() -> dict:
     knoten, kanten = [], []
+    dateistamm: dict[str, str] = {}  # Dateiname ohne .md -> Knoten-id (für [[Obsidian-Links]])
+    links: list[tuple[str, str]] = []
 
     def neu(id_, label, art, **mehr):
         knoten.append({"id": id_, "label": label, "art": art, **mehr})
@@ -88,7 +113,12 @@ def netz_bauen() -> dict:
             rel = str(datei.relative_to(WURZEL))
             text = datei.read_text(encoding="utf-8")
             kopf = (text.splitlines() or [datei.stem])[0].lstrip("# ").strip() or datei.stem
-            did = neu(rel, kopf, "datei", bereich=schluessel, quelle=rel)
+            gid, gname = _galaxie(schluessel, datei, kopf)
+            datum_datei = _erstes_datum(rel)
+            did = neu(rel, kopf, "datei", bereich=schluessel, quelle=rel, galaxie=gid, galaxie_name=gname, datum=datum_datei)
+            dateistamm[datei.stem.lower()] = did
+            for ziel in re.findall(r"\[\[([^\]|#]+)", text):
+                links.append((did, ziel.strip().lower()))
             kanten.append([schluessel, did])
             if schluessel == "fakten":
                 for nr, z in enumerate(text.splitlines(), 1):
@@ -96,8 +126,9 @@ def netz_bauen() -> dict:
                         continue
                     teile = [t.strip() for t in z[2:].split("·")]
                     fakt = teile[1] if len(teile) > 1 else z[2:]
+                    datum = teile[0] if teile and re.match(r"\d{4}-\d{2}-\d{2}$", teile[0]) else datum_datei
                     eid = neu(f"{rel}:{nr}", _kurz(fakt, 60), "eintrag", bereich=schluessel,
-                              quelle=f"{rel}:{nr}", text=z[2:], datum=teile[0] if teile else "")
+                              quelle=f"{rel}:{nr}", text=z[2:], datum=datum, galaxie=gid)
                     kanten.append([did, eid])
                     eintraege.append((eid, fakt, rel))
             else:
@@ -107,9 +138,15 @@ def netz_bauen() -> dict:
                     knoten[-1]["text"] = text[:1500]
                 for titel, inhalt in abschnitte:
                     eid = neu(f"{rel}#{titel}", _kurz(titel, 50), "eintrag", bereich=schluessel,
-                              quelle=rel, text=inhalt[:1500])
+                              quelle=rel, text=inhalt[:1500], datum=datum_datei, galaxie=gid)
                     kanten.append([did, eid])
                     eintraege.append((eid, titel + " " + inhalt, rel))
+
+    # [[Obsidian-Links]] zwischen Notizen werden echte Verbindungen
+    for quelle, ziel in links:
+        ziel_id = dateistamm.get(ziel) or next((i for st, i in dateistamm.items() if st.endswith(ziel.replace(" ", "_"))), None)
+        if ziel_id and ziel_id != quelle:
+            kanten.append([quelle, ziel_id, "link"])
 
     # Begriffe, die in mehreren Dateien vorkommen, verbinden die Einträge quer
     vorkommen: dict[str, set[str]] = defaultdict(set)
@@ -174,7 +211,22 @@ def arbeit_lesen() -> list[dict]:
 def main() -> None:
     netz = netz_bauen()
     uebersicht = gehirn.uebersicht()
+    profil_datei = gehirn.GEHIRN / "profil.json"
+    profil = json.loads(profil_datei.read_text(encoding="utf-8")) if profil_datei.exists() else {}
+    galaxien: dict[str, dict] = {}
+    for k in netz["knoten"]:
+        if k["art"] == "datei":
+            g = galaxien.setdefault(k["galaxie"], {"id": k["galaxie"], "name": k["galaxie_name"], "anzahl": 0})
+        if k.get("galaxie") and k["art"] in ("datei", "eintrag"):
+            galaxien[k["galaxie"]]["anzahl"] += 1
+    heute = datetime.now().date()
+    neu_woche = sum(
+        1 for k in netz["knoten"]
+        if k["art"] == "eintrag" and k.get("datum") and (heute - datetime.fromisoformat(k["datum"]).date()).days <= 7
+    )
     daten = {
+        "name": profil.get("name", ""),
+        "galaxien": sorted(galaxien.values(), key=lambda g: -g["anzahl"]),
         "erstellt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "netz": netz,
         "agenten": AGENTEN,
@@ -187,6 +239,8 @@ def main() -> None:
             "jarvis": len(list((gehirn.GEHIRN / "jarvis").rglob("*.md"))) if (gehirn.GEHIRN / "jarvis").exists() else 0,
             "verbindungen": len(netz["kanten"]),
             "start_tokens": round(len(uebersicht) / 4),
+            "eintraege": sum(1 for k in netz["knoten"] if k["art"] == "eintrag"),
+            "neu_woche": neu_woche,
         },
     }
     json_text = json.dumps(daten, ensure_ascii=False).replace("</", "<\\/")

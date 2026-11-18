@@ -1,0 +1,44 @@
+{
+  "showTags": false,
+  "showAttachments": false,
+  "hideUnresolved": true,
+  "showOrphans": true,
+  "colorGroups": [
+    {
+      "query": "path:fakten",
+      "color": {
+        "a": 1,
+        "rgb": 16748380
+      }
+    },
+    {
+      "query": "path:notizen",
+      "color": {
+        "a": 1,
+        "rgb": 6156960
+      }
+    },
+    {
+      "query": "path:gespraeche",
+      "color": {
+        "a": 1,
+        "rgb": 16769126
+      }
+    },
+    {
+      "query": "path:jarvis",
+      "color": {
+        "a": 1,
+        "rgb": 11832575
+      }
+    }
+  ],
+  "showArrow": false,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1.2,
+  "lineSizeMultiplier": 0.6,
+  "centerStrength": 0.5,
+  "repelStrength": 12,
+  "linkStrength": 1,
+  "linkDistance": 180
+}

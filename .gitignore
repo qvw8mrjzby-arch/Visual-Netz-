@@ -3,3 +3,7 @@ jarvis-wissensnetz/wissensnetz.log
 jarvis-wissensnetz/status.json
 graphify-out/
 jarvis-wissensnetz/gehirn_sync_zustand.json
+gehirn/.obsidian/workspace*.json
+gehirn/.obsidian/cache
+gehirn/.obsidian/plugins/
+gehirn/.trash/

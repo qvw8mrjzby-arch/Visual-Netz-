@@ -99,6 +99,10 @@ Jarvis bekommt immer den neuesten Stand: `WissensNetz` merkt bei jedem Aufruf, o
 - Im Wissens-Ordner liegt `graphify-out\graph.html`. Doppelklick öffnet das Netz im Browser.
 - Schnelltest in der Eingabeaufforderung: `python jarvis_wissen.py Auto Werkstatt`
 
+## In Obsidian öffnen
+
+Der Repo-Ordner `gehirn/` ist ein fertiger Obsidian-Tresor: In Obsidian „Ordner als Tresor öffnen“ und `C:\Jarvis\Visual-Netz-\gehirn` wählen. Die Graph-Ansicht färbt Fakten, Notizen, Gespräche und Jarvis wie das Dashboard. Notizen verlinken sich mit `[[...]]`. Der Dienst gleicht weiter über Git ab; Obsidian braucht dafür kein Plugin. Auf dem iPad geht derselbe Tresor mit der Obsidian-App plus dem Plugin „Obsidian Git“ (oder der App Working Copy).
+
 ## Kosten und Datenschutz
 
 - **Code** wird lokal und kostenlos gelesen, ohne KI.
