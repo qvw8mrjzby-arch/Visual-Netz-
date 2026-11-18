@@ -1,0 +1,449 @@
+<title>Jarvis-Gehirn</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Kopfzeile mit Kennzahlen, darunter das 3D-Netz mit Detailspalte, darunter das Agenten-Hochhaus mit Arbeitsprotokoll.
+   Bewusst nur ein dunkler Look (Jarvis-Leitstand), alle Farben explizit gesetzt. */
+:root {
+  color-scheme: dark;
+  --bg: #090d16;
+  --flaeche: #101727;
+  --flaeche-2: #151e33;
+  --linie: #22304b;
+  --text: #e7edf7;
+  --leise: #8e9ab2;
+  --kern: #69c6ff;
+  --fakten: #ff8a65;
+  --notizen: #f3c552;
+  --gespraeche: #78dcb0;
+  --wissen: #9aaeff;
+  --begriff: #c9d3e4;
+  --licht: #ffd27a;
+  --nacht: #0d1528;
+  --f-titel: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-text: "Inter", system-ui, -apple-system, sans-serif;
+  --f-daten: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); }
+body {
+  font-family: var(--f-text);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--f-titel); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+.etikett { font-family: var(--f-daten); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--leise); }
+
+/* Kopf */
+.kopf { display: grid; gap: 14px; }
+.kopf p { margin: 0; color: var(--leise); max-width: 65ch; }
+.zahlen { display: flex; flex-wrap: wrap; gap: 10px; }
+.zahl { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid var(--linie); border-radius: 10px; min-width: 104px; background: var(--flaeche); }
+.zahl b { font-family: var(--f-titel); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.zahl.hell { border-color: color-mix(in srgb, var(--kern) 55%, var(--linie)); }
+.zahl.hell b { color: var(--kern); }
+
+/* Gehirn */
+.gehirn { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; }
+@media (max-width: 920px) { .gehirn { grid-template-columns: minmax(0, 1fr); } }
+.buehne { position: relative; border: 1px solid var(--linie); border-radius: 14px; overflow: hidden; height: min(72vh, 640px); min-height: 380px;
+  background: radial-gradient(ellipse at 50% 45%, #13213d 0%, var(--bg) 70%); touch-action: none; }
+canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+canvas:active { cursor: grabbing; }
+.oben { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; pointer-events: none; }
+.oben > * { pointer-events: auto; }
+.suche { flex: 1 1 200px; max-width: 320px; background: color-mix(in srgb, var(--bg) 80%, transparent); border: 1px solid var(--linie); color: var(--text);
+  border-radius: 8px; padding: 8px 12px; font: inherit; font-size: 14px; backdrop-filter: blur(6px); }
+.suche:focus-visible, button:focus-visible { outline: 2px solid var(--kern); outline-offset: 2px; }
+.knopf { background: color-mix(in srgb, var(--bg) 80%, transparent); border: 1px solid var(--linie); color: var(--text); border-radius: 8px; padding: 8px 12px;
+  font: inherit; font-size: 13px; cursor: pointer; backdrop-filter: blur(6px); }
+.knopf:hover { border-color: var(--kern); }
+.treffer { font-family: var(--f-daten); font-size: 12px; color: var(--leise); }
+.legende { position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--leise); pointer-events: none; max-width: calc(100% - 24px); }
+.legende span { display: inline-flex; align-items: center; gap: 6px; }
+.punkt { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.hinweis { position: absolute; right: 12px; bottom: 12px; font-size: 12px; color: var(--leise); pointer-events: none; }
+@media (max-width: 1000px) { .hinweis { display: none; } }
+
+.detail { border: 1px solid var(--linie); border-radius: 14px; background: var(--flaeche); padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; max-height: min(72vh, 640px); overflow-y: auto; }
+@media (max-width: 920px) { .detail { max-height: none; } }
+.detail .text { white-space: pre-wrap; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+.detail .quelle { font-family: var(--f-daten); font-size: 12px; color: var(--leise); overflow-wrap: anywhere; }
+.art { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-daten); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--leise); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--linie); background: var(--flaeche-2); color: var(--text); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; max-width: 100%; }
+.chip:hover { border-color: var(--kern); }
+.chip span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hochhaus */
+.zentrale { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 920px) { .zentrale { grid-template-columns: minmax(0, 1fr); } }
+.haus { display: grid; justify-items: center; }
+.dach { width: 78%; display: grid; justify-items: center; }
+.antenne { width: 3px; height: 34px; background: var(--linie); position: relative; }
+.antenne::before { content: ""; position: absolute; top: -6px; left: -4px; width: 11px; height: 11px; border-radius: 50%; background: var(--fakten); box-shadow: 0 0 12px var(--fakten); animation: blink 2.4s infinite; }
+@keyframes blink { 0%, 60%, 100% { opacity: 1; } 70%, 90% { opacity: 0.2; } }
+.schild { width: 100%; text-align: center; padding: 8px 0; border: 1px solid var(--linie); border-bottom: none; border-radius: 10px 10px 0 0; background: var(--flaeche-2);
+  font-family: var(--f-titel); font-weight: 700; letter-spacing: 0.32em; color: var(--kern); text-shadow: 0 0 14px color-mix(in srgb, var(--kern) 60%, transparent); }
+.fassade { width: 100%; border: 1px solid var(--linie); border-radius: 6px 6px 0 0; background:
+  repeating-linear-gradient(90deg, transparent 0 22px, color-mix(in srgb, var(--linie) 35%, transparent) 22px 23px), var(--flaeche); padding: 12px; display: grid; gap: 10px; }
+.etage { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px; border: 1px solid var(--linie); border-radius: 8px; background: var(--bg); }
+@media (max-width: 420px) { .etage { grid-template-columns: 112px minmax(0, 1fr); } }
+.fenster { aspect-ratio: 3 / 2; max-width: 100%; border-radius: 4px; background: var(--nacht); border: 2px solid var(--linie); overflow: hidden; position: relative; }
+.etage.an .fenster { background: linear-gradient(180deg, color-mix(in srgb, var(--licht) 30%, var(--nacht)) 0%, color-mix(in srgb, var(--licht) 12%, var(--nacht)) 100%);
+  border-color: color-mix(in srgb, var(--licht) 40%, var(--linie)); box-shadow: 0 0 22px color-mix(in srgb, var(--licht) 22%, transparent); }
+.fenster svg { width: 100%; height: 100%; display: block; }
+.etage .info { display: grid; gap: 3px; min-width: 0; }
+.etage .zeile1 { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.status { font-family: var(--f-daten); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--linie); color: var(--leise); }
+.etage.an .status { color: var(--licht); border-color: color-mix(in srgb, var(--licht) 50%, var(--linie)); }
+.etage .rolle { font-size: 13px; color: var(--leise); }
+.etage .job { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etage .job time { font-family: var(--f-daten); font-size: 12px; color: var(--leise); }
+.boden { width: 100%; height: 10px; border-radius: 4px; background: var(--linie); }
+
+.arm { transform-origin: 62px 62px; }
+.etage.an .arm { animation: tippen 0.5s ease-in-out infinite alternate; }
+.etage.an .bildschirm-zeile { animation: laufen 1.6s linear infinite; }
+@keyframes tippen { from { transform: rotate(-6deg); } to { transform: rotate(8deg); } }
+@keyframes laufen { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+.protokoll { border: 1px solid var(--linie); border-radius: 14px; background: var(--flaeche); padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.protokoll ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.protokoll li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; padding: 10px 0; border-top: 1px solid var(--linie); align-items: start; }
+.protokoll li:first-child { border-top: none; }
+.protokoll li .punkt { margin-top: 6px; }
+.protokoll .was { font-size: 14px; overflow-wrap: anywhere; }
+.protokoll .wer { font-size: 12.5px; color: var(--leise); }
+.protokoll .dateien { font-family: var(--f-daten); font-size: 11.5px; color: var(--leise); overflow-wrap: anywhere; }
+.protokoll time { font-family: var(--f-daten); font-size: 12px; color: var(--leise); white-space: nowrap; }
+.leer { color: var(--leise); font-size: 14px; }
+.fuss { color: var(--leise); font-size: 12.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .antenne::before, .etage.an .arm, .etage.an .bildschirm-zeile { animation: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="kopf">
+    <span class="etikett">Zweites Gehirn · Claude &amp; Jarvis</span>
+    <h1>Jarvis-Gehirn</h1>
+    <p>Das ist das Gedächtnis, in das Claude zu Beginn jeder Sitzung schaut, statt alte Chats durchzulesen. Jeder Punkt ist ein Fakt, eine Notiz oder ein Stück Wissen. Linien zeigen, was zusammenhängt.</p>
+    <div class="zahlen" id="zahlen"></div>
+  </header>
+
+  <section class="gehirn" aria-label="Wissensnetz in 3D">
+    <div class="buehne" id="buehne">
+      <canvas id="leinwand" aria-label="Drehbares 3D-Netz des Gehirns"></canvas>
+      <div class="oben">
+        <input id="suche" class="suche" type="search" placeholder="Im Gehirn suchen, z. B. Hook" autocomplete="off">
+        <button id="drehen" class="knopf" type="button">Pause</button>
+        <button id="mitte" class="knopf" type="button">Zentrieren</button>
+        <span id="treffer" class="treffer"></span>
+      </div>
+      <div class="legende" id="legende"></div>
+      <div class="hinweis">Ziehen zum Drehen · Zwei Finger zum Zoomen · Antippen für Details</div>
+    </div>
+    <aside class="detail" id="detail" aria-live="polite"></aside>
+  </section>
+
+  <section class="zentrale" aria-label="Agenten-Zentrale">
+    <div class="haus">
+      <div class="dach"><div class="antenne"></div><div class="schild">JARVIS</div></div>
+      <div class="fassade" id="fassade"></div>
+      <div class="boden"></div>
+    </div>
+    <div class="protokoll">
+      <span class="etikett">Agenten-Zentrale</span>
+      <h2>Was zuletzt gearbeitet wurde</h2>
+      <ol id="protokoll"></ol>
+    </div>
+  </section>
+
+  <p class="fuss" id="fuss"></p>
+</div>
+
+<script>
+const DATEN = {"erstellt": "2026-11-18T07:02:36+00:00", "netz": {"knoten": [{"id": "gehirn", "label": "Jarvis-Gehirn", "art": "kern"}, {"id": "fakten", "label": "Fakten", "art": "bereich", "bereich": "fakten"}, {"id": "gehirn/fakten/entscheidungen.md", "label": "Entscheidungen", "art": "datei", "bereich": "fakten", "quelle": "gehirn/fakten/entscheidungen.md"}, {"id": "gehirn/fakten/entscheidungen.md:3", "label": "Das zweite Gehirn liegt im GitHub-Repo Visual-Netz-, weil C…", "art": "eintrag", "bereich": "fakten", "quelle": "gehirn/fakten/entscheidungen.md:3", "text": "2026-11-18 · Das zweite Gehirn liegt im GitHub-Repo Visual-Netz-, weil Claude-Sitzungen auf dem iPad das Repo immer erreichen, auch wenn der PC aus ist. Der PC zieht Änderungen nach, sobald er läuft. · Quelle: Gespräch iPad", "datum": "2026-11-18"}, {"id": "gehirn/fakten/ich.md", "label": "Über mich", "art": "datei", "bereich": "fakten", "quelle": "gehirn/fakten/ich.md"}, {"id": "gehirn/fakten/ich.md:3", "label": "Ich nutze Jarvis als persönlichen Assistenten auf meinem Wi…", "art": "eintrag", "bereich": "fakten", "quelle": "gehirn/fakten/ich.md:3", "text": "2026-11-18 · Ich nutze Jarvis als persönlichen Assistenten auf meinem Windows-PC und Claude auf meinem iPad. · Quelle: Gespräch iPad", "datum": "2026-11-18"}, {"id": "gehirn/fakten/marken.md", "label": "Meine Marken", "art": "datei", "bereich": "fakten", "quelle": "gehirn/fakten/marken.md"}, {"id": "gehirn/fakten/marken.md:3", "label": "Faith_Aesthetic ist meine eigene Marke für Gym-/Compression…", "art": "eintrag", "bereich": "fakten", "quelle": "gehirn/fakten/marken.md:3", "text": "2026-11-18 · Faith_Aesthetic ist meine eigene Marke für Gym-/Compression-Kleidung. · Quelle: jarvis-wissensnetz/wissen/marketing/01_hooks.md", "datum": "2026-11-18"}, {"id": "gehirn/fakten/marken.md:4", "label": "Stil von Faith_Aesthetic: dunkler Look mit Rot-Akzent, schn…", "art": "eintrag", "bereich": "fakten", "quelle": "gehirn/fakten/marken.md:4", "text": "2026-11-18 · Stil von Faith_Aesthetic: dunkler Look mit Rot-Akzent, schnelle Cuts auf den Beat, wenig Text (nur der Hook-Text), ein Sound pro Reel. · Quelle: jarvis-wissensnetz/wissen/marketing/01_hooks.md", "datum": "2026-11-18"}, {"id": "gehirn/fakten/marketing-erkenntnisse.md", "label": "Marketing-Erkenntnisse", "art": "datei", "bereich": "fakten", "quelle": "gehirn/fakten/marketing-erkenntnisse.md"}, {"id": "gehirn/fakten/projekte.md", "label": "Projekte", "art": "datei", "bereich": "fakten", "quelle": "gehirn/fakten/projekte.md"}, {"id": "gehirn/fakten/projekte.md:3", "label": "Jarvis-Wissensnetz: Graphify baut auf dem PC aus dem Ordner…", "art": "eintrag", "bereich": "fakten", "quelle": "gehirn/fakten/projekte.md:3", "text": "2026-11-18 · Jarvis-Wissensnetz: Graphify baut auf dem PC aus dem Ordner JarvisWissen ein Wissensnetz, das Jarvis abfragt (Ordner jarvis-wissensnetz). · Quelle: Repo Visual-Netz-", "datum": "2026-11-18"}, {"id": "gehirn/fakten/projekte.md:4", "label": "Second Brain: Jarvis' Gehirn liegt zusätzlich im Repo (Ordn…", "art": "eintrag", "bereich": "fakten", "quelle": "gehirn/fakten/projekte.md:4", "text": "2026-11-18 · Second Brain: Jarvis' Gehirn liegt zusätzlich im Repo (Ordner gehirn), damit Claude vom iPad aus immer darauf zugreifen kann; der PC gleicht es automatisch ab. · Quelle: Gespräch iPad", "datum": "2026-11-18"}, {"id": "gehirn/fakten/recherche.md", "label": "Recherche-Ergebnisse", "art": "datei", "bereich": "fakten", "quelle": "gehirn/fakten/recherche.md"}, {"id": "notizen", "label": "Notizen", "art": "bereich", "bereich": "notizen"}, {"id": "gespraeche", "label": "Gespräche", "art": "bereich", "bereich": "gespraeche"}, {"id": "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md", "label": "Second Brain fürs iPad gebaut", "art": "datei", "bereich": "gespraeche", "quelle": "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md", "text": "# Second Brain fürs iPad gebaut\n\nDatum: 2026-11-18  \nQuelle: Claude Code auf dem iPad\n\n- Ziel: Jarvis' Gehirn auch vom iPad aus nutzen, damit keine Infos verloren gehen, auch wenn der PC aus ist.\n- Lösung: Das Gehirn liegt im Repo-Ordner gehirn/ (fakten, notizen, gespraeche). Werkzeug: gehirn.py (uebersicht, suche, merken, notiz, gespraech).\n- CLAUDE.md sagt jeder neuen Claude-Sitzung, dass sie das Gehirn zu Beginn liest, Fakten merkt und am Ende eine Zusammenfassung ablegt.\n- PC-Seite: jarvis-wissensnetz/gehirn_sync.py gleicht gehirn/ mit JarvisWissen ab (beim Dienst-Start und alle 2 Minuten), Graphify baut daraus das Netz.\n- Offen: Auf dem PC Git installieren, Repo klonen, installieren.bat im Klon ausführen (oder gehirn_repo in config.json setzen).\n"}, {"id": "wissen", "label": "Wissen", "art": "bereich", "bereich": "wissen"}, {"id": "jarvis-wissensnetz/wissen/marketing/01_hooks.md", "label": "Hooks: Die ersten 1–3 Sekunden", "art": "datei", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/01_hooks.md"}, {"id": "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Der Job eines Hooks", "label": "Der Job eines Hooks", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/01_hooks.md", "text": "- In 1–2 Sekunden klar machen, worum es geht.\n- Neugier wecken: eine offene Frage im Kopf erzeugen, die erst das Video beantwortet (Open Loop).\n- Die richtige Zielgruppe ansprechen und die falsche ruhig wegscrollen lassen.\n- Nichts Vages wie „Das ist krass“. Konkret schlägt vage."}, {"id": "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Die drei Ebenen eines Video-Hooks", "label": "Die drei Ebenen eines Video-Hooks", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/01_hooks.md", "text": "Alle drei müssen dasselbe sagen:\n1. **Text-Hook** (Overlay): 3–6 Wörter, max. 2 Zeilen, oberes Drittel, ca. 3 Sekunden sichtbar, verdeckt weder Gesicht noch Produkt. Keine Füllwörter.\n2. **Visueller Hook** (erstes Bild): mitten in der Bewegung starten, nie mit Standbild oder Logo. Bewegung, Kontrast, ein unerwartetes Bild.\n3. **Audio-Hook**: Sound oder gesprochener erster Satz ab Sekunde 0. Kein Einatmen, kein „Hey Leute“."}, {"id": "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel", "label": "Hook-Typen mit Formel", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/01_hooks.md", "text": "| Typ | Formel | Beispiel |\n|---|---|---|\n| Kontrast / Mythos | „Alle sagen X, aber Y“ | „Ich dachte Compression ist Marketing“ |\n| Konkreter Nutzen | Ergebnis + Zeit/Zahl | „3 Hooks die meine Views verdoppelt haben“ |\n| POV / Relatable | „POV: du …“ | „POV du trägst zum ersten Mal Compression“ |\n| Wenn-Hook (Problem) | „Wenn dein … dann …“ | „Wenn dein Shirt beim Klimmzug hochrutscht“ |\n| Fehler / Warnung | „Hör auf X zu machen“ | „Hör auf so deine Hooks zu schreiben“ |\n| Story / Gründer | Startpunkt + Spannung | „Student mit eigener Gym-Brand: Tag 1“ |\n| Liste | Zahl + Versprechen | „5 Fehler die dein Reel killen“ |\n| Frage | Frage, die die Zielgruppe sich selbst stellt | „Warum hat dein Reel 200 Views?“ |\n| Ergebnis zuerst | Vorher/Nachher zeigen, dann erklären | Transformation in Sekunde 1 |\n| Saison / Trend | Aktuelles Ereignis + Thema | „WinterArc Kompression“ |\n| Neugier-Lücke | Etwas andeuten, nicht verraten | „Das hat mir niemand über Reels gesagt“ |"}, {"id": "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Regeln", "label": "Regeln", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/01_hooks.md", "text": "- „Du/dein“ statt „ich/mein“: der Zuschauer muss sich gemeint fühlen.\n- Zahlen, Zeiträume und konkrete Dinge erhöhen die Glaubwürdigkeit.\n- Power-Wörter: POV, Fehler, niemand, geheim, hör auf, scam, hate, endlich, wirklich.\n- Direkt nach dem Hook das Versprechen einlösen. Ein Hook, der lügt (Clickbait ohne Auszahlung), senkt Watchtime und Vertrauen.\n- Pro Video mehrere Hook-Varianten testen; gleicher Inhalt, anderer Hook, ist der billigste Test.\n- Das Video als Loop denken: das Ende führt wieder an den Anfang, das erhöht die Wiedergaben."}, {"id": "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)", "label": "Bewährte Formate für Faith_Aesthetic (eigene Mark…", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/01_hooks.md", "text": "Stil: dunkler Look mit Rot-Akzent, schnelle Cuts auf den Beat, wenig Text (nur der Hook-Text), ein Sound pro Reel.\n1. Mitten in der Pose + 2-Wort-Text („Holy Compression“)\n2. Nutzen-Text („Arme betont, Bauch versteckt“)\n3. POV / Relatable („POV du trägst zum ersten Mal Compression“)\n4. Gründer-Story („Student mit eigener Gym-Brand: Tag 1“), nur wenn wahr\n5. Saison („WinterArc Kompression“)\n6. Wenn-Hook („Wenn dein Shirt beim Klimmzug hochrutscht“)\n7. Scam/Kontrast („Ich dachte Compression ist Marketing“)\nPro Reel 3 Varianten (Text + erstes Bild + Sound) und eine empfehlen. Keine Produktversprechen erfinden."}, {"id": "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video", "label": "Hooks außerhalb von Video", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/01_hooks.md", "text": "- **Betreffzeile E-Mail**: kurz, konkret, Neugier oder Nutzen; Vorschautext als zweiter Hook.\n- **Anzeigen**: die erste Zeile des Primärtexts und das erste Bild sind der Hook.\n- **Karussell**: Folie 1 ist der Hook, Folie 2 muss sofort liefern.\n- **Landingpage**: die Überschrift ist der Hook, sie sagt Ergebnis für wen."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "label": "Copywriting-Frameworks", "art": "datei", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md"}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#AIDA", "label": "AIDA", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Attention → Interest → Desire → Action. Aufmerksamkeit holen, Interesse mit Details, Verlangen mit Nutzen und Beweis, dann klarer Call-to-Action. Klassiker für Anzeigen und Landingpages."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#PAS", "label": "PAS", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Problem → Agitate → Solution. Problem benennen, Schmerz verstärken („was es dich kostet“), Lösung zeigen. Stark für Anzeigen und kurze Videos."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#BAB", "label": "BAB", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Before → After → Bridge. Situation vorher, Situation nachher, das Produkt ist die Brücke. Gut für Vorher/Nachher-Inhalte."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#4 U (für Überschriften und Hooks)", "label": "4 U (für Überschriften und Hooks)", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Useful (nützlich), Urgent (dringend), Unique (einzigartig), Ultra-specific (sehr konkret). Je mehr davon, desto stärker."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Features → Vorteile → Gefühl", "label": "Features → Vorteile → Gefühl", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Feature: „Kompressionsstoff“. Vorteil: „sitzt eng, rutscht nicht“. Gefühl: „du siehst im Gym breiter aus“. Menschen kaufen das Gefühl, begründen mit dem Feature."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Storytelling-Struktur für Kurzvideos", "label": "Storytelling-Struktur für Kurzvideos", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Hook → Kontext (wer, wo) → Konflikt/Problem → Wendepunkt → Ergebnis → CTA. Spannung entsteht durch eine offene Frage, die erst am Ende beantwortet wird."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Call-to-Action (CTA)", "label": "Call-to-Action (CTA)", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "- Ein Video, ein CTA. Mehrere CTAs senken die Handlung.\n- Konkret: „Speicher dir das für dein nächstes Reel“ statt „Lass ein Like da“.\n- Speichern und Teilen sind auf Instagram stärkere Signale als Likes.\n- Kommentar-CTAs mit Stichwort („Schreib HOOK und ich schick dir die Liste“) erzeugen Kommentare und DMs."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Sozialer Beweis", "label": "Sozialer Beweis", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Zahlen, Bewertungen, Kundenstimmen, Vorher/Nachher, „verkauft an 1.000 Leute“. Beweis direkt nach dem Versprechen platzieren."}, {"id": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Einwände vorwegnehmen", "label": "Einwände vorwegnehmen", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "text": "Die 3 häufigsten Gründe, nicht zu kaufen (zu teuer, funktioniert bei mir nicht, keine Zeit), im Inhalt beantworten, bevor sie gedacht werden."}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "label": "Kurzvideo-Strategie (Reels, TikTok, Shorts)", "art": "datei", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md"}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Was die Algorithmen belohnen", "label": "Was die Algorithmen belohnen", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "text": "- **Watchtime und Durchschauquote**: Wie viel vom Video gesehen wird, und ob es mehrfach gesehen wird (Loops).\n- **Halterate nach 3 Sekunden**: Entscheidet, ob das Video weiter ausgespielt wird.\n- **Teilen und Speichern**: Instagram gewichtet Teilen (vor allem per DM) besonders stark für Reichweite an Nicht-Follower.\n- **Kommentare**: Gespräche unter dem Video signalisieren Relevanz.\n- Videos werden zuerst einer kleinen Testgruppe gezeigt; gute Werte dort öffnen die nächste, größere Gruppe."}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels", "label": "Aufbau eines Reels", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "text": "1. Hook (0–3 s): Text + erstes Bild + Sound passen zusammen.\n2. Liefern (3–15 s): Versprechen sofort einlösen, schnelle Schnitte, alle 1–3 Sekunden etwas Neues.\n3. Abschluss: Ergebnis oder Pointe, CTA, Ende führt in den Anfang (Loop).\n- Länge: so kurz wie möglich für den Inhalt. 7–15 s für Loops und Ästhetik, 30–60 s für Erklärungen.\n- Untertitel einbauen, viele schauen ohne Ton.\n- Text im sicheren Bereich halten (nicht unten rechts, wo Buttons liegen)."}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Content-Säulen", "label": "Content-Säulen", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "text": "3–4 feste Themen, damit das Profil klar wirkt und der Algorithmus die Zielgruppe versteht. Beispiel Gym-Brand: Produkt in Aktion, Training/Tipps, Gründer-Story/Behind the Scenes, Community/Kunden."}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Trends und Sounds", "label": "Trends und Sounds", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "text": "- Trend-Sounds früh nutzen, solange sie wachsen.\n- Trend an die eigene Marke anpassen, nicht kopieren.\n- Ein Sound pro Reel, Beat-Schnitte auf den Sound."}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Outlier-Methode (Ideen finden)", "label": "Outlier-Methode (Ideen finden)", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "text": "Videos suchen, die im Verhältnis zur Followerzahl des Accounts extrem gut liefen (z. B. 10× mehr Views als üblich). Deren Hook, Format und Thema analysieren und für die eigene Nische umbauen. Outlier zeigen, was die Zielgruppe wirklich will."}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Posting-Rhythmus", "label": "Posting-Rhythmus", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "text": "- Regelmäßigkeit schlägt Perfektion; lieber 4 gute Reels pro Woche dauerhaft als 14 in einer Woche.\n- Batch-Produktion: an einem Tag mehrere Videos drehen.\n- Jedes Video ist ein Test: Hook, Format, Länge variieren und messen."}, {"id": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Plattform-Unterschiede", "label": "Plattform-Unterschiede", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "text": "- **Instagram Reels**: Ästhetik und Teilen per DM wichtig; Karussells für Speichern.\n- **TikTok**: Unterhaltung und Authentizität, Trends schneller, Suche wird wichtiger (Keywords in Text und Caption).\n- **YouTube Shorts**: kann Abonnenten für lange Videos bringen; Titel zählt."}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "label": "Angebot, Funnel und Marke", "art": "datei", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md"}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Zielgruppe zuerst", "label": "Zielgruppe zuerst", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "text": "- Eine klare Person beschreiben (Avatar): Alter, Ziel, Problem, was sie schon versucht hat, welche Worte sie selbst benutzt.\n- Die Sprache der Zielgruppe aus Kommentaren, Bewertungen und DMs übernehmen. Die besten Hooks stehen oft wörtlich in Kommentaren."}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Wert eines Angebots (Value Equation, nach Alex Hormozi)", "label": "Wert eines Angebots (Value Equation, nach Alex Ho…", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "text": "Wert = (Traumergebnis × wahrgenommene Wahrscheinlichkeit) ÷ (Zeitaufwand × Mühe).\nMehr Wert entsteht, wenn das Ergebnis größer und glaubwürdiger wird oder schneller und leichter erreichbar ist. Preis ist dann zweitrangig."}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Positionierung", "label": "Positionierung", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "text": "Was macht dich anders? Eine klare Aussage für eine klare Gruppe („Compression-Shirts, die beim Training sitzen und gut aussehen“) schlägt „für alle“."}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Funnel (Weg vom Fremden zum Kunden)", "label": "Funnel (Weg vom Fremden zum Kunden)", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "text": "1. **Aufmerksamkeit (Top)**: Reels, TikToks, Anzeigen, Kooperationen. Ziel: Reichweite bei der richtigen Gruppe.\n2. **Vertrauen (Mitte)**: Profil, Story-Highlights, Karussells, Beweise, Gründer-Story, E-Mail-Liste.\n3. **Kauf (Unten)**: klares Angebot, Shop, Rabatt mit Frist, Retargeting-Anzeigen.\n4. **Bindung**: Danke-Mail, Community, Kunden-Content teilen, Wiederkauf."}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Marke", "label": "Marke", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "text": "- Wiedererkennung durch festen Look (Farben, Schrift, Schnittstil, Sound-Stil).\n- Gründer zeigen schafft Vertrauen, gerade bei kleinen Marken.\n- Konsistenz über alle Kanäle: Profilbild, Bio, Shop und Videos erzählen dasselbe."}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Verknappung und Dringlichkeit", "label": "Verknappung und Dringlichkeit", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "text": "Nur echt einsetzen (limitierte Auflage, Frist). Falsche Verknappung zerstört Vertrauen."}, {"id": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Kooperationen und UGC", "label": "Kooperationen und UGC", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "text": "- Kleine Creator in der Nische haben oft bessere Interaktion als große.\n- UGC (Inhalte von Kunden) wirkt glaubwürdiger als eigene Werbung und eignet sich als Anzeigenmaterial."}, {"id": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "label": "Kennzahlen und Testen", "art": "datei", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md"}, {"id": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos", "label": "Wichtige Kennzahlen bei Kurzvideos", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "text": "| Kennzahl | Bedeutung | Woran man arbeitet |\n|---|---|---|\n| Halterate 3 s (Hook Rate) | Anteil, der nach 3 Sekunden noch schaut | Hook: Text, erstes Bild, Sound |\n| Durchschnittliche Wiedergabedauer | Wie lange im Schnitt geschaut wird | Tempo, Schnitte, Länge |\n| Durchschauquote | Anteil, der bis zum Ende schaut | Länge kürzen, Spannung bis zum Schluss |\n| Teilen, Speichern | Wert des Inhalts für andere | Nützlichkeit, Relatability |\n| Nicht-Follower-Reichweite | Wie viel neue Leute erreicht werden | Hook, Trendnähe, Teilbarkeit |\n| Profilaufrufe, Follows | Ob das Video Interesse an dir weckt | CTA, klare Profil-Story |\n| Link-Klicks, Käufe | Ob es verkauft | Angebot, Funnel |"}, {"id": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Bei Anzeigen", "label": "Bei Anzeigen", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "text": "- **CTR** (Klickrate) = Klicks ÷ Impressionen. Zeigt, ob Hook und Creative ziehen.\n- **CPC** (Kosten pro Klick), **CPM** (Kosten pro 1.000 Impressionen).\n- **Conversion Rate** = Käufe ÷ Besucher. Zeigt, ob Landingpage und Angebot funktionieren.\n- **ROAS** = Umsatz ÷ Werbeausgaben. Unter dem Break-even-ROAS (1 ÷ Marge) verliert man Geld.\n- **CAC** (Kosten pro Neukunde) muss unter dem Kundenwert (LTV) liegen."}, {"id": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#So wird getestet", "label": "So wird getestet", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "text": "- Immer nur eine Sache ändern (z. B. nur den Hook), sonst weiß man nicht, was gewirkt hat.\n- Genug Daten sammeln, bevor man entscheidet; ein einzelnes Video ist Zufall, ein Muster über 5–10 Videos ist ein Signal.\n- Gewinner notieren: welcher Hook, welches Format, welche Länge, welcher Sound. Diese Erkenntnisse in `fakten/marketing-erkenntnisse.md` speichern, damit Jarvis daraus lernt.\n- Gewinner variieren statt neu erfinden."}, {"id": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Diagnose", "label": "Diagnose", "art": "eintrag", "bereich": "wissen", "quelle": "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "text": "- Wenig Views, gute Halterate: Thema zu klein oder Posting-Zeit schlecht.\n- Viele Views, kaum Follows: Inhalt unterhält, verbindet aber nicht mit dir oder der Marke.\n- Hohe Halterate, niedrige Durchschauquote: Hook gut, Mittelteil zu langsam.\n- Niedrige Halterate: Hook schwach oder passt nicht zum Rest."}, {"id": "begriff:reel", "label": "Reel", "art": "begriff"}, {"id": "begriff:marke", "label": "Marke", "art": "begriff"}, {"id": "begriff:sound", "label": "Sound", "art": "begriff"}, {"id": "begriff:jarvis", "label": "Jarvis", "art": "begriff"}, {"id": "begriff:text", "label": "Text", "art": "begriff"}, {"id": "begriff:gehirn", "label": "Gehirn", "art": "begriff"}, {"id": "begriff:look", "label": "Look", "art": "begriff"}, {"id": "begriff:repo", "label": "Repo", "art": "begriff"}, {"id": "begriff:faith_aesthetic", "label": "Faith_Aesthetic", "art": "begriff"}, {"id": "begriff:beat", "label": "Beat", "art": "begriff"}, {"id": "begriff:brain", "label": "Brain", "art": "begriff"}, {"id": "begriff:cuts", "label": "Cuts", "art": "begriff"}, {"id": "begriff:graphify", "label": "Graphify", "art": "begriff"}, {"id": "begriff:hook-text", "label": "Hook-Text", "art": "begriff"}, {"id": "begriff:jarviswissen", "label": "JarvisWissen", "art": "begriff"}, {"id": "begriff:rot-akzent", "label": "Rot-Akzent", "art": "begriff"}, {"id": "begriff:second", "label": "Second", "art": "begriff"}, {"id": "begriff:stil", "label": "Stil", "art": "begriff"}, {"id": "begriff:hook", "label": "Hook", "art": "begriff"}, {"id": "begriff:video", "label": "Video", "art": "begriff"}, {"id": "begriff:anzeigen", "label": "Anzeigen", "art": "begriff"}, {"id": "begriff:ergebnis", "label": "Ergebnis", "art": "begriff"}, {"id": "begriff:nutzen", "label": "Nutzen", "art": "begriff"}, {"id": "begriff:bild", "label": "Bild", "art": "begriff"}, {"id": "begriff:speichern", "label": "Speichern", "art": "begriff"}, {"id": "begriff:zielgruppe", "label": "Zielgruppe", "art": "begriff"}, {"id": "begriff:problem", "label": "Problem", "art": "begriff"}, {"id": "begriff:versprechen", "label": "Versprechen", "art": "begriff"}], "kanten": [["gehirn", "fakten"], ["fakten", "gehirn/fakten/entscheidungen.md"], ["gehirn/fakten/entscheidungen.md", "gehirn/fakten/entscheidungen.md:3"], ["fakten", "gehirn/fakten/ich.md"], ["gehirn/fakten/ich.md", "gehirn/fakten/ich.md:3"], ["fakten", "gehirn/fakten/marken.md"], ["gehirn/fakten/marken.md", "gehirn/fakten/marken.md:3"], ["gehirn/fakten/marken.md", "gehirn/fakten/marken.md:4"], ["fakten", "gehirn/fakten/marketing-erkenntnisse.md"], ["fakten", "gehirn/fakten/projekte.md"], ["gehirn/fakten/projekte.md", "gehirn/fakten/projekte.md:3"], ["gehirn/fakten/projekte.md", "gehirn/fakten/projekte.md:4"], ["fakten", "gehirn/fakten/recherche.md"], ["gehirn", "notizen"], ["gehirn", "gespraeche"], ["gespraeche", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["gehirn", "wissen"], ["wissen", "jarvis-wissensnetz/wissen/marketing/01_hooks.md"], ["jarvis-wissensnetz/wissen/marketing/01_hooks.md", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Der Job eines Hooks"], ["jarvis-wissensnetz/wissen/marketing/01_hooks.md", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Die drei Ebenen eines Video-Hooks"], ["jarvis-wissensnetz/wissen/marketing/01_hooks.md", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["jarvis-wissensnetz/wissen/marketing/01_hooks.md", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Regeln"], ["jarvis-wissensnetz/wissen/marketing/01_hooks.md", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["jarvis-wissensnetz/wissen/marketing/01_hooks.md", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video"], ["wissen", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#AIDA"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#PAS"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#BAB"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#4 U (für Überschriften und Hooks)"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Features → Vorteile → Gefühl"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Storytelling-Struktur für Kurzvideos"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Call-to-Action (CTA)"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Sozialer Beweis"], ["jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Einwände vorwegnehmen"], ["wissen", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md"], ["jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Was die Algorithmen belohnen"], ["jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"], ["jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Content-Säulen"], ["jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Trends und Sounds"], ["jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Outlier-Methode (Ideen finden)"], ["jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Posting-Rhythmus"], ["jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Plattform-Unterschiede"], ["wissen", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md"], ["jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Zielgruppe zuerst"], ["jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Wert eines Angebots (Value Equation, nach Alex Hormozi)"], ["jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Positionierung"], ["jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Funnel (Weg vom Fremden zum Kunden)"], ["jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Marke"], ["jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Verknappung und Dringlichkeit"], ["jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Kooperationen und UGC"], ["wissen", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md"], ["jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos"], ["jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Bei Anzeigen"], ["jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#So wird getestet"], ["jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Diagnose"], ["begriff:reel", "gehirn/fakten/marken.md:4"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Call-to-Action (CTA)"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Plattform-Unterschiede"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Posting-Rhythmus"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Trends und Sounds"], ["begriff:reel", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Funnel (Weg vom Fremden zum Kunden)"], ["begriff:marke", "gehirn/fakten/marken.md:3"], ["begriff:marke", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:marke", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Trends und Sounds"], ["begriff:marke", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Marke"], ["begriff:marke", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Diagnose"], ["begriff:sound", "gehirn/fakten/marken.md:4"], ["begriff:sound", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:sound", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Die drei Ebenen eines Video-Hooks"], ["begriff:sound", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"], ["begriff:sound", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Trends und Sounds"], ["begriff:sound", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#So wird getestet"], ["begriff:sound", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos"], ["begriff:jarvis", "gehirn/fakten/ich.md:3"], ["begriff:jarvis", "gehirn/fakten/projekte.md:3"], ["begriff:jarvis", "gehirn/fakten/projekte.md:4"], ["begriff:jarvis", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:jarvis", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#So wird getestet"], ["begriff:text", "gehirn/fakten/marken.md:4"], ["begriff:text", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:text", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"], ["begriff:text", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Plattform-Unterschiede"], ["begriff:text", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos"], ["begriff:gehirn", "gehirn/fakten/entscheidungen.md:3"], ["begriff:gehirn", "gehirn/fakten/projekte.md:4"], ["begriff:gehirn", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:look", "gehirn/fakten/marken.md:4"], ["begriff:look", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:look", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Marke"], ["begriff:repo", "gehirn/fakten/entscheidungen.md:3"], ["begriff:repo", "gehirn/fakten/projekte.md:4"], ["begriff:repo", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:faith_aesthetic", "gehirn/fakten/marken.md:3"], ["begriff:faith_aesthetic", "gehirn/fakten/marken.md:4"], ["begriff:faith_aesthetic", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:beat", "gehirn/fakten/marken.md:4"], ["begriff:beat", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:brain", "gehirn/fakten/projekte.md:4"], ["begriff:brain", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:cuts", "gehirn/fakten/marken.md:4"], ["begriff:cuts", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:graphify", "gehirn/fakten/projekte.md:3"], ["begriff:graphify", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:hook-text", "gehirn/fakten/marken.md:4"], ["begriff:hook-text", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:jarviswissen", "gehirn/fakten/projekte.md:3"], ["begriff:jarviswissen", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:rot-akzent", "gehirn/fakten/marken.md:4"], ["begriff:rot-akzent", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:second", "gehirn/fakten/projekte.md:4"], ["begriff:second", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:stil", "gehirn/fakten/marken.md:4"], ["begriff:stil", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Der Job eines Hooks"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Die drei Ebenen eines Video-Hooks"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Regeln"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#4 U (für Überschriften und Hooks)"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Call-to-Action (CTA)"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Storytelling-Struktur für Kurzvideos"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Outlier-Methode (Ideen finden)"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Posting-Rhythmus"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Zielgruppe zuerst"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Bei Anzeigen"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Diagnose"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#So wird getestet"], ["begriff:hook", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Der Job eines Hooks"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Regeln"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Call-to-Action (CTA)"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#PAS"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Outlier-Methode (Ideen finden)"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Plattform-Unterschiede"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Posting-Rhythmus"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Was die Algorithmen belohnen"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Marke"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#So wird getestet"], ["begriff:video", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos"], ["begriff:anzeigen", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video"], ["begriff:anzeigen", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#AIDA"], ["begriff:anzeigen", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#PAS"], ["begriff:anzeigen", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Funnel (Weg vom Fremden zum Kunden)"], ["begriff:anzeigen", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Bei Anzeigen"], ["begriff:ergebnis", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["begriff:ergebnis", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video"], ["begriff:ergebnis", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Storytelling-Struktur für Kurzvideos"], ["begriff:ergebnis", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"], ["begriff:ergebnis", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Wert eines Angebots (Value Equation, nach Alex Hormozi)"], ["begriff:nutzen", "gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"], ["begriff:nutzen", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["begriff:nutzen", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video"], ["begriff:nutzen", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#AIDA"], ["begriff:nutzen", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Trends und Sounds"], ["begriff:bild", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Bewährte Formate für Faith_Aesthetic (eigene Marke)"], ["begriff:bild", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Die drei Ebenen eines Video-Hooks"], ["begriff:bild", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hooks außerhalb von Video"], ["begriff:bild", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"], ["begriff:bild", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos"], ["begriff:speichern", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Call-to-Action (CTA)"], ["begriff:speichern", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Plattform-Unterschiede"], ["begriff:speichern", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Was die Algorithmen belohnen"], ["begriff:speichern", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#So wird getestet"], ["begriff:speichern", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md#Wichtige Kennzahlen bei Kurzvideos"], ["begriff:zielgruppe", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Der Job eines Hooks"], ["begriff:zielgruppe", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["begriff:zielgruppe", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Content-Säulen"], ["begriff:zielgruppe", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Outlier-Methode (Ideen finden)"], ["begriff:zielgruppe", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Zielgruppe zuerst"], ["begriff:problem", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["begriff:problem", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#PAS"], ["begriff:problem", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Storytelling-Struktur für Kurzvideos"], ["begriff:problem", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md#Zielgruppe zuerst"], ["begriff:versprechen", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Hook-Typen mit Formel"], ["begriff:versprechen", "jarvis-wissensnetz/wissen/marketing/01_hooks.md#Regeln"], ["begriff:versprechen", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md#Sozialer Beweis"], ["begriff:versprechen", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md#Aufbau eines Reels"]]}, "agenten": [{"id": "merker", "name": "Merker", "rolle": "trägt gesicherte Fakten ein", "pfad": "gehirn/fakten/"}, {"id": "archivar", "name": "Archivar", "rolle": "fasst Gespräche zusammen", "pfad": "gehirn/gespraeche/"}, {"id": "schreiber", "name": "Schreiber", "rolle": "legt Notizen und Konzepte ab", "pfad": "gehirn/notizen/"}, {"id": "bibliothekar", "name": "Bibliothekar", "rolle": "pflegt das Startwissen", "pfad": "jarvis-wissensnetz/wissen/"}, {"id": "sync", "name": "PC-Sync", "rolle": "gleicht mit Jarvis auf dem PC ab", "pfad": null}], "arbeit": [{"agent": "merker", "zeit": "2026-11-18T06:56:45+00:00", "was": "Second Brain fürs iPad: Jarvis' Gehirn im Repo, mit PC-Abgleich", "dateien": ["gehirn/fakten/entscheidungen.md", "gehirn/fakten/ich.md", "gehirn/fakten/marken.md", "gehirn/fakten/marketing-erkenntnisse.md", "gehirn/fakten/projekte.md", "gehirn/fakten/recherche.md"]}, {"agent": "archivar", "zeit": "2026-11-18T06:56:45+00:00", "was": "Second Brain fürs iPad: Jarvis' Gehirn im Repo, mit PC-Abgleich", "dateien": ["gehirn/gespraeche/2026-11-18_Second_Brain_fuers_iPad_gebaut.md"]}, {"agent": "bibliothekar", "zeit": "2026-11-09T14:37:05+00:00", "was": "Jarvis lernt aus Claude-Gesprächen und bekommt Marketing-Wissen", "dateien": ["jarvis-wissensnetz/wissen/marketing/01_hooks.md", "jarvis-wissensnetz/wissen/marketing/02_copywriting_frameworks.md", "jarvis-wissensnetz/wissen/marketing/03_kurzvideo_strategie.md", "jarvis-wissensnetz/wissen/marketing/04_angebot_funnel_marke.md", "jarvis-wissensnetz/wissen/marketing/05_kennzahlen_testen.md"]}], "zahlen": {"fakten": 6, "notizen": 0, "gespraeche": 1, "wissen": 5, "verbindungen": 182, "start_tokens": 491}};
+
+const FARBE = { kern: "--kern", fakten: "--fakten", notizen: "--notizen", gespraeche: "--gespraeche", wissen: "--wissen", begriff: "--begriff" };
+const css = getComputedStyle(document.documentElement);
+const farbe = (n) => css.getPropertyValue(FARBE[n] || "--begriff").trim();
+const knotenFarbe = (k) => farbe(k.art === "kern" ? "kern" : k.art === "begriff" ? "begriff" : k.bereich);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ART = { kern: "Kern", bereich: "Bereich", datei: "Datei", eintrag: "Eintrag", begriff: "Begriff" };
+const AGENT_FARBE = { merker: "fakten", archivar: "gespraeche", schreiber: "notizen", bibliothekar: "wissen", sync: "kern" };
+
+function vor(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (!isFinite(s)) return "";
+  if (s < 90) return "gerade eben";
+  const m = s / 60, h = m / 60, d = h / 24;
+  if (m < 60) return `vor ${Math.round(m)} Min.`;
+  if (h < 24) return `vor ${Math.round(h)} Std.`;
+  if (d < 2) return "gestern";
+  if (d < 30) return `vor ${Math.round(d)} Tagen`;
+  return new Date(iso).toLocaleDateString("de-DE");
+}
+
+/* ---------- Kopfzahlen ---------- */
+const Z = DATEN.zahlen;
+document.getElementById("zahlen").innerHTML = [
+  ["Fakten", Z.fakten], ["Notizen", Z.notizen], ["Gespräche", Z.gespraeche], ["Wissens-Dateien", Z.wissen], ["Verbindungen", Z.verbindungen],
+].map(([t, w]) => `<div class="zahl"><span class="etikett">${t}</span><b>${w}</b></div>`).join("")
+  + `<div class="zahl hell"><span class="etikett">Liest Claude beim Start</span><b>≈ ${Z.start_tokens.toLocaleString("de-DE")} Tokens</b></div>`;
+document.getElementById("fuss").textContent =
+  `Stand: ${new Date(DATEN.erstellt).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" })} · erzeugt mit dashboard.py aus dem Repo Visual-Netz-`;
+document.getElementById("legende").innerHTML = [["kern", "Kern"], ["fakten", "Fakten"], ["notizen", "Notizen"], ["gespraeche", "Gespräche"], ["wissen", "Wissen"], ["begriff", "Begriffe"]]
+  .map(([k, t]) => `<span><i class="punkt" style="background:${farbe(k)}"></i>${t}</span>`).join("");
+
+/* ---------- Netz vorbereiten ---------- */
+const K = DATEN.netz.knoten.map((k) => ({ ...k }));
+const index = new Map(K.map((k, i) => [k.id, i]));
+const E = DATEN.netz.kanten.map(([a, b]) => [index.get(a), index.get(b)]).filter(([a, b]) => a != null && b != null);
+const nachbarn = K.map(() => []);
+E.forEach(([a, b]) => { nachbarn[a].push(b); nachbarn[b].push(a); });
+const RADIUS = { kern: 10, bereich: 7, datei: 4.6, eintrag: 2.8, begriff: 3.6 };
+
+/* 3D-Kräfte-Layout, mit festem Zufall, damit das Gehirn jedes Mal gleich aussieht */
+function zufall(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+(function layout() {
+  const r = zufall(42), n = K.length;
+  K.forEach((k, i) => {
+    const u = r() * 2 - 1, phi = r() * Math.PI * 2, rad = k.art === "kern" ? 0 : 60 + r() * 120;
+    const s = Math.sqrt(1 - u * u);
+    k.x = rad * s * Math.cos(phi); k.y = rad * u; k.z = rad * s * Math.sin(phi);
+  });
+  const LAENGE = { "kern-bereich": 70, "bereich-datei": 55, "datei-eintrag": 34, "begriff-eintrag": 60, "begriff-datei": 60 };
+  let temp = 30;
+  const schritte = n > 400 ? 160 : 320;
+  for (let it = 0; it < schritte; it++) {
+    const dx = new Float64Array(n), dy = new Float64Array(n), dz = new Float64Array(n);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      let x = K[i].x - K[j].x, y = K[i].y - K[j].y, z = K[i].z - K[j].z;
+      let d2 = x * x + y * y + z * z + 0.01; const f = 900 / d2;
+      dx[i] += x * f; dy[i] += y * f; dz[i] += z * f; dx[j] -= x * f; dy[j] -= y * f; dz[j] -= z * f;
+    }
+    for (const [a, b] of E) {
+      const A = K[a], B = K[b];
+      const ziel = LAENGE[`${A.art}-${B.art}`] || LAENGE[`${B.art}-${A.art}`] || 50;
+      let x = B.x - A.x, y = B.y - A.y, z = B.z - A.z; const d = Math.sqrt(x * x + y * y + z * z) + 0.01;
+      const f = (d - ziel) * 0.06 / d;
+      dx[a] += x * f * 10; dy[a] += y * f * 10; dz[a] += z * f * 10; dx[b] -= x * f * 10; dy[b] -= y * f * 10; dz[b] -= z * f * 10;
+    }
+    for (let i = 0; i < n; i++) {
+      const k = K[i]; if (k.art === "kern") { k.x = k.y = k.z = 0; continue; }
+      dx[i] -= k.x * 0.01; dy[i] -= k.y * 0.01; dz[i] -= k.z * 0.01;
+      const l = Math.sqrt(dx[i] ** 2 + dy[i] ** 2 + dz[i] ** 2) || 1, m = Math.min(l, temp) / l;
+      k.x += dx[i] * m; k.y += dy[i] * m; k.z += dz[i] * m;
+    }
+    temp = Math.max(1, temp * 0.985);
+  }
+  // auf das 92. Perzentil skalieren, damit Ausreißer das Netz nicht klein machen
+  const abst = K.map((k) => Math.hypot(k.x, k.y, k.z)).sort((a, b) => a - b);
+  const max = abst[Math.floor(abst.length * 0.92)] || 1;
+  K.forEach((k) => { k.x /= max; k.y /= max; k.z /= max; });
+})();
+
+/* ---------- Zeichnen ---------- */
+const leinwand = document.getElementById("leinwand"), ctx = leinwand.getContext("2d");
+const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let B = 0, H = 0, dpr = 1, rotY = 0.6, rotX = -0.25, zoom = 1, autoDrehen = !ruhig, pauseBis = 0;
+let gewaehlt = -1, hover = -1, markiert = null;
+const proj = K.map(() => ({ x: 0, y: 0, z: 0, s: 1 }));
+
+function groesse() {
+  const r = leinwand.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
+  B = r.width; H = r.height; leinwand.width = B * dpr; leinwand.height = H * dpr;
+}
+new ResizeObserver(groesse).observe(leinwand); groesse();
+
+function projizieren() {
+  const cy = Math.cos(rotY), sy = Math.sin(rotY), cx = Math.cos(rotX), sx = Math.sin(rotX);
+  const welt = Math.min(B, H) * 0.5 * zoom, kamera = 2.6;
+  K.forEach((k, i) => {
+    let x = k.x * cy - k.z * sy, z = k.x * sy + k.z * cy, y = k.y * cx - z * sx; z = k.y * sx + z * cx;
+    const s = kamera / (kamera + z);
+    const p = proj[i]; p.x = B / 2 + x * welt * s; p.y = H / 2 + y * welt * s; p.z = z; p.s = s;
+  });
+}
+
+function zeichnen() {
+  if (autoDrehen && performance.now() > pauseBis) rotY += 0.0018;
+  projizieren();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, B, H);
+  const fokus = gewaehlt >= 0 ? new Set([gewaehlt, ...nachbarn[gewaehlt]]) : null;
+  const leuchtet = (i) => (markiert ? markiert.has(i) : true) && (fokus ? fokus.has(i) : true);
+
+  ctx.lineWidth = 1;
+  for (const [a, b] of E) {
+    const pa = proj[a], pb = proj[b];
+    const hell = (fokus && (a === gewaehlt || b === gewaehlt)) || (markiert && markiert.has(a) && markiert.has(b));
+    const tiefe = Math.max(0.15, Math.min(1, (pa.s + pb.s) / 2 - 0.35));
+    ctx.strokeStyle = hell ? knotenFarbe(K[a === gewaehlt ? b : a]) : "rgba(140,170,220,1)";
+    ctx.globalAlpha = hell ? 0.85 : (fokus || markiert ? 0.05 : 0.16 * tiefe);
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+  }
+  const reihenfolge = K.map((_, i) => i).sort((a, b) => proj[b].z - proj[a].z);
+  for (const i of reihenfolge) {
+    const k = K[i], p = proj[i], an = leuchtet(i);
+    const r = RADIUS[k.art] * p.s * (i === gewaehlt ? 1.7 : i === hover ? 1.4 : 1) * (0.8 + zoom * 0.2);
+    ctx.globalAlpha = an ? Math.max(0.35, Math.min(1, p.s - 0.1)) : 0.12;
+    const f = knotenFarbe(k);
+    if (an && (k.art === "kern" || k.art === "bereich" || i === gewaehlt)) { ctx.shadowColor = f; ctx.shadowBlur = 18; } else ctx.shadowBlur = 0;
+    ctx.fillStyle = f; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1.2, r), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  // Beschriftungen
+  for (const i of reihenfolge) {
+    const k = K[i], p = proj[i];
+    const zeigen = k.art === "kern" || k.art === "bereich" || i === gewaehlt || i === hover || (fokus && fokus.has(i)) ||
+      (markiert && markiert.has(i) && markiert.size < 25) || (k.art === "begriff" && !fokus && !markiert && p.s > 0.95);
+    if (!zeigen) continue;
+    const gross = k.art === "kern" || k.art === "bereich" || i === gewaehlt;
+    ctx.globalAlpha = leuchtet(i) ? 1 : 0.3;
+    ctx.font = `${gross ? 600 : 400} ${gross ? 13 : 11.5}px ${gross ? "Space Grotesk" : "Inter"}, system-ui, sans-serif`;
+    const t = k.label.length > 42 ? k.label.slice(0, 41) + "…" : k.label;
+    const w = ctx.measureText(t).width, x = Math.min(Math.max(p.x + 8, 4), B - w - 4), y = p.y + 4;
+    ctx.fillStyle = "rgba(9,13,22,0.75)"; ctx.fillRect(x - 3, y - 11, w + 6, 15);
+    ctx.fillStyle = k.art === "begriff" ? css.getPropertyValue("--leise") : css.getPropertyValue("--text");
+    if (gross) ctx.fillStyle = knotenFarbe(k);
+    ctx.fillText(t, x, y);
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(zeichnen);
+}
+
+/* ---------- Bedienung: Ziehen, Zoomen, Antippen ---------- */
+const zeiger = new Map(); let start = null, pinch = null;
+function naechster(x, y) {
+  let best = -1, bd = 22 * 22;
+  K.forEach((k, i) => { const p = proj[i], d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd && p.z < 1.5) { bd = d; best = i; } });
+  return best;
+}
+const lokal = (e) => { const r = leinwand.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+leinwand.addEventListener("pointerdown", (e) => {
+  leinwand.setPointerCapture(e.pointerId); zeiger.set(e.pointerId, lokal(e));
+  start = { x: e.clientX, y: e.clientY, bewegt: false }; pauseBis = performance.now() + 5000;
+  if (zeiger.size === 2) { const [a, b] = [...zeiger.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), zoom }; }
+});
+leinwand.addEventListener("pointermove", (e) => {
+  const [x, y] = lokal(e);
+  if (!zeiger.has(e.pointerId)) { if (e.pointerType === "mouse") { hover = naechster(x, y); } return; }
+  const alt = zeiger.get(e.pointerId); zeiger.set(e.pointerId, [x, y]);
+  if (zeiger.size === 2 && pinch) {
+    const [a, b] = [...zeiger.values()];
+    zoom = Math.min(3.5, Math.max(0.5, pinch.zoom * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d)); start.bewegt = true; return;
+  }
+  if (Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) > 6) start.bewegt = true;
+  rotY += (x - alt[0]) * 0.006; rotX = Math.max(-1.4, Math.min(1.4, rotX + (y - alt[1]) * 0.006));
+  pauseBis = performance.now() + 5000;
+});
+const loslassen = (e) => {
+  if (zeiger.has(e.pointerId) && start && !start.bewegt && zeiger.size === 1) {
+    const [x, y] = lokal(e); const i = naechster(x, y); waehlen(i);
+  }
+  zeiger.delete(e.pointerId); if (zeiger.size < 2) pinch = null;
+};
+leinwand.addEventListener("pointerup", loslassen);
+leinwand.addEventListener("pointercancel", (e) => { zeiger.delete(e.pointerId); pinch = null; });
+leinwand.addEventListener("pointerleave", () => { hover = -1; });
+leinwand.addEventListener("wheel", (e) => { e.preventDefault(); zoom = Math.min(3.5, Math.max(0.5, zoom * Math.exp(-e.deltaY * 0.0015))); }, { passive: false });
+
+const knopfDrehen = document.getElementById("drehen");
+const drehenText = () => { knopfDrehen.textContent = autoDrehen ? "Pause" : "Drehen"; };
+drehenText();
+knopfDrehen.onclick = () => { autoDrehen = !autoDrehen; pauseBis = 0; drehenText(); };
+document.getElementById("mitte").onclick = () => { zoom = 1; rotX = -0.25; waehlen(-1); };
+
+/* ---------- Suche ---------- */
+const sucheFeld = document.getElementById("suche"), trefferText = document.getElementById("treffer");
+sucheFeld.addEventListener("input", () => {
+  const q = sucheFeld.value.trim().toLowerCase();
+  if (q.length < 2) { markiert = null; trefferText.textContent = ""; return; }
+  markiert = new Set(); K.forEach((k, i) => { if ((k.label + " " + (k.text || "")).toLowerCase().includes(q)) markiert.add(i); });
+  trefferText.textContent = markiert.size ? `${markiert.size} Treffer` : "nichts gefunden";
+});
+sucheFeld.addEventListener("keydown", (e) => { if (e.key === "Enter" && markiert && markiert.size) waehlen([...markiert][0]); });
+
+/* ---------- Detailspalte ---------- */
+const detail = document.getElementById("detail");
+function waehlen(i) {
+  gewaehlt = i;
+  if (i < 0) { startDetail(); return; }
+  const k = K[i];
+  const liste = [...new Set(nachbarn[i])].sort((a, b) => ["kern", "bereich", "datei", "begriff", "eintrag"].indexOf(K[a].art) - ["kern", "bereich", "datei", "begriff", "eintrag"].indexOf(K[b].art));
+  detail.innerHTML = `
+    <span class="art"><i class="punkt" style="background:${knotenFarbe(k)}"></i>${ART[k.art]}${k.bereich && k.art !== "bereich" ? " · " + esc(K[index.get(k.bereich)]?.label) : ""}</span>
+    <h3>${esc(k.label)}</h3>
+    ${k.text ? `<div class="text">${esc(k.text)}</div>` : ""}
+    ${k.quelle ? `<div class="quelle">${esc(k.quelle)}</div>` : ""}
+    ${liste.length ? `<span class="etikett">Verbunden mit (${liste.length})</span><div class="chips">${liste.slice(0, 40).map((j) =>
+      `<button class="chip" type="button" data-i="${j}"><i class="punkt" style="background:${knotenFarbe(K[j])}"></i><span>${esc(K[j].label)}</span></button>`).join("")}</div>` : ""}
+    <button class="knopf" type="button" data-i="-1">Auswahl aufheben</button>`;
+}
+function startDetail() {
+  const begriffe = K.map((k, i) => [k, i]).filter(([k]) => k.art === "begriff").sort((a, b) => nachbarn[b[1]].length - nachbarn[a[1]].length).slice(0, 14);
+  const bereiche = K.map((k, i) => [k, i]).filter(([k]) => k.art === "bereich");
+  detail.innerHTML = `
+    <span class="etikett">So liest du das Gehirn</span>
+    <h3>Tippe einen Punkt an</h3>
+    <div class="text">Dann siehst du hier den Fakt oder das Wissen dazu, woher es stammt und womit es verbunden ist. Große Punkte sind die Bereiche, kleine die einzelnen Einträge. Graue Punkte sind Begriffe, die in mehreren Dateien vorkommen und sie verbinden.</div>
+    <span class="etikett">Bereiche</span>
+    <div class="chips">${bereiche.map(([k, i]) => `<button class="chip" type="button" data-i="${i}"><i class="punkt" style="background:${knotenFarbe(k)}"></i><span>${esc(k.label)}</span></button>`).join("")}</div>
+    <span class="etikett">Stärkste Begriffe</span>
+    <div class="chips">${begriffe.map(([k, i]) => `<button class="chip" type="button" data-i="${i}"><span>${esc(k.label)}</span><span>${nachbarn[i].length}</span></button>`).join("") || '<span class="leer">Noch keine.</span>'}</div>`;
+}
+detail.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) waehlen(Number(b.dataset.i)); });
+startDetail();
+
+/* ---------- Agenten-Hochhaus ---------- */
+const arbeit = [...DATEN.arbeit].sort((a, b) => new Date(b.zeit) - new Date(a.zeit));
+function figur(farbeAgent) {
+  return `<svg viewBox="0 0 150 100" aria-hidden="true">
+    <rect x="0" y="78" width="150" height="22" fill="rgba(0,0,0,0.25)"/>
+    <rect x="58" y="60" width="80" height="6" rx="2" fill="#2a3756"/>
+    <rect x="66" y="66" width="4" height="22" fill="#2a3756"/><rect x="126" y="66" width="4" height="22" fill="#2a3756"/>
+    <rect x="84" y="24" width="46" height="32" rx="3" fill="#0b1222" stroke="#2f3f62"/>
+    <svg x="88" y="28" width="38" height="24" viewBox="0 0 38 24">
+      <g class="bildschirm-zeile" fill="${farbeAgent}" opacity="0.8">
+        <rect x="2" y="3" width="22" height="2.4" rx="1"/><rect x="2" y="9" width="30" height="2.4" rx="1"/><rect x="2" y="15" width="16" height="2.4" rx="1"/>
+        <rect x="2" y="21" width="26" height="2.4" rx="1"/><rect x="2" y="27" width="20" height="2.4" rx="1"/><rect x="2" y="33" width="28" height="2.4" rx="1"/>
+      </g></svg>
+    <rect x="104" y="56" width="6" height="5" fill="#2f3f62"/>
+    <circle cx="44" cy="30" r="10" fill="${farbeAgent}"/>
+    <rect x="31" y="42" width="26" height="30" rx="10" fill="${farbeAgent}" opacity="0.85"/>
+    <g class="arm"><rect x="50" y="52" width="26" height="7" rx="3.5" fill="${farbeAgent}"/></g>
+    <rect x="28" y="72" width="34" height="5" rx="2" fill="#2a3756"/>
+  </svg>`;
+}
+document.getElementById("fassade").innerHTML = DATEN.agenten.map((a) => {
+  const jobs = arbeit.filter((j) => j.agent === a.id), letzter = jobs[0];
+  const an = letzter && Date.now() - new Date(letzter.zeit).getTime() < 72 * 3600 * 1000;
+  const f = farbe(AGENT_FARBE[a.id]);
+  return `<div class="etage ${an ? "an" : ""}">
+    <div class="fenster">${figur(f)}</div>
+    <div class="info">
+      <div class="zeile1"><h3>${esc(a.name)}</h3><span class="status">${an ? "aktiv" : letzter ? "ruht" : "bereit"}</span></div>
+      <div class="rolle">${esc(a.rolle)} · ${jobs.length} ${jobs.length === 1 ? "Auftrag" : "Aufträge"}</div>
+      <div class="job">${letzter ? `${esc(letzter.was)} <time datetime="${esc(letzter.zeit)}">${vor(letzter.zeit)}</time>` : '<span class="leer">Noch kein Auftrag.</span>'}</div>
+    </div></div>`;
+}).join("");
+const agentName = Object.fromEntries(DATEN.agenten.map((a) => [a.id, a.name]));
+document.getElementById("protokoll").innerHTML = arbeit.slice(0, 30).map((j) => `
+  <li><i class="punkt" style="background:${farbe(AGENT_FARBE[j.agent])}"></i>
+    <div><div class="was">${esc(j.was)}</div><div class="wer">${esc(agentName[j.agent])}</div>
+    <div class="dateien">${j.dateien.slice(0, 4).map(esc).join(" · ")}${j.dateien.length > 4 ? ` · +${j.dateien.length - 4}` : ""}</div></div>
+    <time datetime="${esc(j.zeit)}">${vor(j.zeit)}</time></li>`).join("") || '<li class="leer">Noch keine Arbeit protokolliert.</li>';
+
+requestAnimationFrame(zeichnen);
+</script>

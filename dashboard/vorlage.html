@@ -1,0 +1,449 @@
+<title>Jarvis-Gehirn</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Kopfzeile mit Kennzahlen, darunter das 3D-Netz mit Detailspalte, darunter das Agenten-Hochhaus mit Arbeitsprotokoll.
+   Bewusst nur ein dunkler Look (Jarvis-Leitstand), alle Farben explizit gesetzt. */
+:root {
+  color-scheme: dark;
+  --bg: #090d16;
+  --flaeche: #101727;
+  --flaeche-2: #151e33;
+  --linie: #22304b;
+  --text: #e7edf7;
+  --leise: #8e9ab2;
+  --kern: #69c6ff;
+  --fakten: #ff8a65;
+  --notizen: #f3c552;
+  --gespraeche: #78dcb0;
+  --wissen: #9aaeff;
+  --begriff: #c9d3e4;
+  --licht: #ffd27a;
+  --nacht: #0d1528;
+  --f-titel: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-text: "Inter", system-ui, -apple-system, sans-serif;
+  --f-daten: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); }
+body {
+  font-family: var(--f-text);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--f-titel); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+.etikett { font-family: var(--f-daten); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--leise); }
+
+/* Kopf */
+.kopf { display: grid; gap: 14px; }
+.kopf p { margin: 0; color: var(--leise); max-width: 65ch; }
+.zahlen { display: flex; flex-wrap: wrap; gap: 10px; }
+.zahl { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid var(--linie); border-radius: 10px; min-width: 104px; background: var(--flaeche); }
+.zahl b { font-family: var(--f-titel); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.zahl.hell { border-color: color-mix(in srgb, var(--kern) 55%, var(--linie)); }
+.zahl.hell b { color: var(--kern); }
+
+/* Gehirn */
+.gehirn { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; }
+@media (max-width: 920px) { .gehirn { grid-template-columns: minmax(0, 1fr); } }
+.buehne { position: relative; border: 1px solid var(--linie); border-radius: 14px; overflow: hidden; height: min(72vh, 640px); min-height: 380px;
+  background: radial-gradient(ellipse at 50% 45%, #13213d 0%, var(--bg) 70%); touch-action: none; }
+canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+canvas:active { cursor: grabbing; }
+.oben { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; pointer-events: none; }
+.oben > * { pointer-events: auto; }
+.suche { flex: 1 1 200px; max-width: 320px; background: color-mix(in srgb, var(--bg) 80%, transparent); border: 1px solid var(--linie); color: var(--text);
+  border-radius: 8px; padding: 8px 12px; font: inherit; font-size: 14px; backdrop-filter: blur(6px); }
+.suche:focus-visible, button:focus-visible { outline: 2px solid var(--kern); outline-offset: 2px; }
+.knopf { background: color-mix(in srgb, var(--bg) 80%, transparent); border: 1px solid var(--linie); color: var(--text); border-radius: 8px; padding: 8px 12px;
+  font: inherit; font-size: 13px; cursor: pointer; backdrop-filter: blur(6px); }
+.knopf:hover { border-color: var(--kern); }
+.treffer { font-family: var(--f-daten); font-size: 12px; color: var(--leise); }
+.legende { position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--leise); pointer-events: none; max-width: calc(100% - 24px); }
+.legende span { display: inline-flex; align-items: center; gap: 6px; }
+.punkt { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.hinweis { position: absolute; right: 12px; bottom: 12px; font-size: 12px; color: var(--leise); pointer-events: none; }
+@media (max-width: 1000px) { .hinweis { display: none; } }
+
+.detail { border: 1px solid var(--linie); border-radius: 14px; background: var(--flaeche); padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; max-height: min(72vh, 640px); overflow-y: auto; }
+@media (max-width: 920px) { .detail { max-height: none; } }
+.detail .text { white-space: pre-wrap; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+.detail .quelle { font-family: var(--f-daten); font-size: 12px; color: var(--leise); overflow-wrap: anywhere; }
+.art { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-daten); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--leise); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--linie); background: var(--flaeche-2); color: var(--text); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; max-width: 100%; }
+.chip:hover { border-color: var(--kern); }
+.chip span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hochhaus */
+.zentrale { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 920px) { .zentrale { grid-template-columns: minmax(0, 1fr); } }
+.haus { display: grid; justify-items: center; }
+.dach { width: 78%; display: grid; justify-items: center; }
+.antenne { width: 3px; height: 34px; background: var(--linie); position: relative; }
+.antenne::before { content: ""; position: absolute; top: -6px; left: -4px; width: 11px; height: 11px; border-radius: 50%; background: var(--fakten); box-shadow: 0 0 12px var(--fakten); animation: blink 2.4s infinite; }
+@keyframes blink { 0%, 60%, 100% { opacity: 1; } 70%, 90% { opacity: 0.2; } }
+.schild { width: 100%; text-align: center; padding: 8px 0; border: 1px solid var(--linie); border-bottom: none; border-radius: 10px 10px 0 0; background: var(--flaeche-2);
+  font-family: var(--f-titel); font-weight: 700; letter-spacing: 0.32em; color: var(--kern); text-shadow: 0 0 14px color-mix(in srgb, var(--kern) 60%, transparent); }
+.fassade { width: 100%; border: 1px solid var(--linie); border-radius: 6px 6px 0 0; background:
+  repeating-linear-gradient(90deg, transparent 0 22px, color-mix(in srgb, var(--linie) 35%, transparent) 22px 23px), var(--flaeche); padding: 12px; display: grid; gap: 10px; }
+.etage { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px; border: 1px solid var(--linie); border-radius: 8px; background: var(--bg); }
+@media (max-width: 420px) { .etage { grid-template-columns: 112px minmax(0, 1fr); } }
+.fenster { aspect-ratio: 3 / 2; max-width: 100%; border-radius: 4px; background: var(--nacht); border: 2px solid var(--linie); overflow: hidden; position: relative; }
+.etage.an .fenster { background: linear-gradient(180deg, color-mix(in srgb, var(--licht) 30%, var(--nacht)) 0%, color-mix(in srgb, var(--licht) 12%, var(--nacht)) 100%);
+  border-color: color-mix(in srgb, var(--licht) 40%, var(--linie)); box-shadow: 0 0 22px color-mix(in srgb, var(--licht) 22%, transparent); }
+.fenster svg { width: 100%; height: 100%; display: block; }
+.etage .info { display: grid; gap: 3px; min-width: 0; }
+.etage .zeile1 { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.status { font-family: var(--f-daten); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--linie); color: var(--leise); }
+.etage.an .status { color: var(--licht); border-color: color-mix(in srgb, var(--licht) 50%, var(--linie)); }
+.etage .rolle { font-size: 13px; color: var(--leise); }
+.etage .job { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etage .job time { font-family: var(--f-daten); font-size: 12px; color: var(--leise); }
+.boden { width: 100%; height: 10px; border-radius: 4px; background: var(--linie); }
+
+.arm { transform-origin: 62px 62px; }
+.etage.an .arm { animation: tippen 0.5s ease-in-out infinite alternate; }
+.etage.an .bildschirm-zeile { animation: laufen 1.6s linear infinite; }
+@keyframes tippen { from { transform: rotate(-6deg); } to { transform: rotate(8deg); } }
+@keyframes laufen { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+.protokoll { border: 1px solid var(--linie); border-radius: 14px; background: var(--flaeche); padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.protokoll ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.protokoll li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; padding: 10px 0; border-top: 1px solid var(--linie); align-items: start; }
+.protokoll li:first-child { border-top: none; }
+.protokoll li .punkt { margin-top: 6px; }
+.protokoll .was { font-size: 14px; overflow-wrap: anywhere; }
+.protokoll .wer { font-size: 12.5px; color: var(--leise); }
+.protokoll .dateien { font-family: var(--f-daten); font-size: 11.5px; color: var(--leise); overflow-wrap: anywhere; }
+.protokoll time { font-family: var(--f-daten); font-size: 12px; color: var(--leise); white-space: nowrap; }
+.leer { color: var(--leise); font-size: 14px; }
+.fuss { color: var(--leise); font-size: 12.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .antenne::before, .etage.an .arm, .etage.an .bildschirm-zeile { animation: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="kopf">
+    <span class="etikett">Zweites Gehirn · Claude &amp; Jarvis</span>
+    <h1>Jarvis-Gehirn</h1>
+    <p>Das ist das Gedächtnis, in das Claude zu Beginn jeder Sitzung schaut, statt alte Chats durchzulesen. Jeder Punkt ist ein Fakt, eine Notiz oder ein Stück Wissen. Linien zeigen, was zusammenhängt.</p>
+    <div class="zahlen" id="zahlen"></div>
+  </header>
+
+  <section class="gehirn" aria-label="Wissensnetz in 3D">
+    <div class="buehne" id="buehne">
+      <canvas id="leinwand" aria-label="Drehbares 3D-Netz des Gehirns"></canvas>
+      <div class="oben">
+        <input id="suche" class="suche" type="search" placeholder="Im Gehirn suchen, z. B. Hook" autocomplete="off">
+        <button id="drehen" class="knopf" type="button">Pause</button>
+        <button id="mitte" class="knopf" type="button">Zentrieren</button>
+        <span id="treffer" class="treffer"></span>
+      </div>
+      <div class="legende" id="legende"></div>
+      <div class="hinweis">Ziehen zum Drehen · Zwei Finger zum Zoomen · Antippen für Details</div>
+    </div>
+    <aside class="detail" id="detail" aria-live="polite"></aside>
+  </section>
+
+  <section class="zentrale" aria-label="Agenten-Zentrale">
+    <div class="haus">
+      <div class="dach"><div class="antenne"></div><div class="schild">JARVIS</div></div>
+      <div class="fassade" id="fassade"></div>
+      <div class="boden"></div>
+    </div>
+    <div class="protokoll">
+      <span class="etikett">Agenten-Zentrale</span>
+      <h2>Was zuletzt gearbeitet wurde</h2>
+      <ol id="protokoll"></ol>
+    </div>
+  </section>
+
+  <p class="fuss" id="fuss"></p>
+</div>
+
+<script>
+const DATEN = /*__DATEN__*/null;
+
+const FARBE = { kern: "--kern", fakten: "--fakten", notizen: "--notizen", gespraeche: "--gespraeche", wissen: "--wissen", begriff: "--begriff" };
+const css = getComputedStyle(document.documentElement);
+const farbe = (n) => css.getPropertyValue(FARBE[n] || "--begriff").trim();
+const knotenFarbe = (k) => farbe(k.art === "kern" ? "kern" : k.art === "begriff" ? "begriff" : k.bereich);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ART = { kern: "Kern", bereich: "Bereich", datei: "Datei", eintrag: "Eintrag", begriff: "Begriff" };
+const AGENT_FARBE = { merker: "fakten", archivar: "gespraeche", schreiber: "notizen", bibliothekar: "wissen", sync: "kern" };
+
+function vor(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (!isFinite(s)) return "";
+  if (s < 90) return "gerade eben";
+  const m = s / 60, h = m / 60, d = h / 24;
+  if (m < 60) return `vor ${Math.round(m)} Min.`;
+  if (h < 24) return `vor ${Math.round(h)} Std.`;
+  if (d < 2) return "gestern";
+  if (d < 30) return `vor ${Math.round(d)} Tagen`;
+  return new Date(iso).toLocaleDateString("de-DE");
+}
+
+/* ---------- Kopfzahlen ---------- */
+const Z = DATEN.zahlen;
+document.getElementById("zahlen").innerHTML = [
+  ["Fakten", Z.fakten], ["Notizen", Z.notizen], ["Gespräche", Z.gespraeche], ["Wissens-Dateien", Z.wissen], ["Verbindungen", Z.verbindungen],
+].map(([t, w]) => `<div class="zahl"><span class="etikett">${t}</span><b>${w}</b></div>`).join("")
+  + `<div class="zahl hell"><span class="etikett">Liest Claude beim Start</span><b>≈ ${Z.start_tokens.toLocaleString("de-DE")} Tokens</b></div>`;
+document.getElementById("fuss").textContent =
+  `Stand: ${new Date(DATEN.erstellt).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" })} · erzeugt mit dashboard.py aus dem Repo Visual-Netz-`;
+document.getElementById("legende").innerHTML = [["kern", "Kern"], ["fakten", "Fakten"], ["notizen", "Notizen"], ["gespraeche", "Gespräche"], ["wissen", "Wissen"], ["begriff", "Begriffe"]]
+  .map(([k, t]) => `<span><i class="punkt" style="background:${farbe(k)}"></i>${t}</span>`).join("");
+
+/* ---------- Netz vorbereiten ---------- */
+const K = DATEN.netz.knoten.map((k) => ({ ...k }));
+const index = new Map(K.map((k, i) => [k.id, i]));
+const E = DATEN.netz.kanten.map(([a, b]) => [index.get(a), index.get(b)]).filter(([a, b]) => a != null && b != null);
+const nachbarn = K.map(() => []);
+E.forEach(([a, b]) => { nachbarn[a].push(b); nachbarn[b].push(a); });
+const RADIUS = { kern: 10, bereich: 7, datei: 4.6, eintrag: 2.8, begriff: 3.6 };
+
+/* 3D-Kräfte-Layout, mit festem Zufall, damit das Gehirn jedes Mal gleich aussieht */
+function zufall(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+(function layout() {
+  const r = zufall(42), n = K.length;
+  K.forEach((k, i) => {
+    const u = r() * 2 - 1, phi = r() * Math.PI * 2, rad = k.art === "kern" ? 0 : 60 + r() * 120;
+    const s = Math.sqrt(1 - u * u);
+    k.x = rad * s * Math.cos(phi); k.y = rad * u; k.z = rad * s * Math.sin(phi);
+  });
+  const LAENGE = { "kern-bereich": 70, "bereich-datei": 55, "datei-eintrag": 34, "begriff-eintrag": 60, "begriff-datei": 60 };
+  let temp = 30;
+  const schritte = n > 400 ? 160 : 320;
+  for (let it = 0; it < schritte; it++) {
+    const dx = new Float64Array(n), dy = new Float64Array(n), dz = new Float64Array(n);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      let x = K[i].x - K[j].x, y = K[i].y - K[j].y, z = K[i].z - K[j].z;
+      let d2 = x * x + y * y + z * z + 0.01; const f = 900 / d2;
+      dx[i] += x * f; dy[i] += y * f; dz[i] += z * f; dx[j] -= x * f; dy[j] -= y * f; dz[j] -= z * f;
+    }
+    for (const [a, b] of E) {
+      const A = K[a], B = K[b];
+      const ziel = LAENGE[`${A.art}-${B.art}`] || LAENGE[`${B.art}-${A.art}`] || 50;
+      let x = B.x - A.x, y = B.y - A.y, z = B.z - A.z; const d = Math.sqrt(x * x + y * y + z * z) + 0.01;
+      const f = (d - ziel) * 0.06 / d;
+      dx[a] += x * f * 10; dy[a] += y * f * 10; dz[a] += z * f * 10; dx[b] -= x * f * 10; dy[b] -= y * f * 10; dz[b] -= z * f * 10;
+    }
+    for (let i = 0; i < n; i++) {
+      const k = K[i]; if (k.art === "kern") { k.x = k.y = k.z = 0; continue; }
+      dx[i] -= k.x * 0.01; dy[i] -= k.y * 0.01; dz[i] -= k.z * 0.01;
+      const l = Math.sqrt(dx[i] ** 2 + dy[i] ** 2 + dz[i] ** 2) || 1, m = Math.min(l, temp) / l;
+      k.x += dx[i] * m; k.y += dy[i] * m; k.z += dz[i] * m;
+    }
+    temp = Math.max(1, temp * 0.985);
+  }
+  // auf das 92. Perzentil skalieren, damit Ausreißer das Netz nicht klein machen
+  const abst = K.map((k) => Math.hypot(k.x, k.y, k.z)).sort((a, b) => a - b);
+  const max = abst[Math.floor(abst.length * 0.92)] || 1;
+  K.forEach((k) => { k.x /= max; k.y /= max; k.z /= max; });
+})();
+
+/* ---------- Zeichnen ---------- */
+const leinwand = document.getElementById("leinwand"), ctx = leinwand.getContext("2d");
+const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let B = 0, H = 0, dpr = 1, rotY = 0.6, rotX = -0.25, zoom = 1, autoDrehen = !ruhig, pauseBis = 0;
+let gewaehlt = -1, hover = -1, markiert = null;
+const proj = K.map(() => ({ x: 0, y: 0, z: 0, s: 1 }));
+
+function groesse() {
+  const r = leinwand.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
+  B = r.width; H = r.height; leinwand.width = B * dpr; leinwand.height = H * dpr;
+}
+new ResizeObserver(groesse).observe(leinwand); groesse();
+
+function projizieren() {
+  const cy = Math.cos(rotY), sy = Math.sin(rotY), cx = Math.cos(rotX), sx = Math.sin(rotX);
+  const welt = Math.min(B, H) * 0.5 * zoom, kamera = 2.6;
+  K.forEach((k, i) => {
+    let x = k.x * cy - k.z * sy, z = k.x * sy + k.z * cy, y = k.y * cx - z * sx; z = k.y * sx + z * cx;
+    const s = kamera / (kamera + z);
+    const p = proj[i]; p.x = B / 2 + x * welt * s; p.y = H / 2 + y * welt * s; p.z = z; p.s = s;
+  });
+}
+
+function zeichnen() {
+  if (autoDrehen && performance.now() > pauseBis) rotY += 0.0018;
+  projizieren();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, B, H);
+  const fokus = gewaehlt >= 0 ? new Set([gewaehlt, ...nachbarn[gewaehlt]]) : null;
+  const leuchtet = (i) => (markiert ? markiert.has(i) : true) && (fokus ? fokus.has(i) : true);
+
+  ctx.lineWidth = 1;
+  for (const [a, b] of E) {
+    const pa = proj[a], pb = proj[b];
+    const hell = (fokus && (a === gewaehlt || b === gewaehlt)) || (markiert && markiert.has(a) && markiert.has(b));
+    const tiefe = Math.max(0.15, Math.min(1, (pa.s + pb.s) / 2 - 0.35));
+    ctx.strokeStyle = hell ? knotenFarbe(K[a === gewaehlt ? b : a]) : "rgba(140,170,220,1)";
+    ctx.globalAlpha = hell ? 0.85 : (fokus || markiert ? 0.05 : 0.16 * tiefe);
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+  }
+  const reihenfolge = K.map((_, i) => i).sort((a, b) => proj[b].z - proj[a].z);
+  for (const i of reihenfolge) {
+    const k = K[i], p = proj[i], an = leuchtet(i);
+    const r = RADIUS[k.art] * p.s * (i === gewaehlt ? 1.7 : i === hover ? 1.4 : 1) * (0.8 + zoom * 0.2);
+    ctx.globalAlpha = an ? Math.max(0.35, Math.min(1, p.s - 0.1)) : 0.12;
+    const f = knotenFarbe(k);
+    if (an && (k.art === "kern" || k.art === "bereich" || i === gewaehlt)) { ctx.shadowColor = f; ctx.shadowBlur = 18; } else ctx.shadowBlur = 0;
+    ctx.fillStyle = f; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1.2, r), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  // Beschriftungen
+  for (const i of reihenfolge) {
+    const k = K[i], p = proj[i];
+    const zeigen = k.art === "kern" || k.art === "bereich" || i === gewaehlt || i === hover || (fokus && fokus.has(i)) ||
+      (markiert && markiert.has(i) && markiert.size < 25) || (k.art === "begriff" && !fokus && !markiert && p.s > 0.95);
+    if (!zeigen) continue;
+    const gross = k.art === "kern" || k.art === "bereich" || i === gewaehlt;
+    ctx.globalAlpha = leuchtet(i) ? 1 : 0.3;
+    ctx.font = `${gross ? 600 : 400} ${gross ? 13 : 11.5}px ${gross ? "Space Grotesk" : "Inter"}, system-ui, sans-serif`;
+    const t = k.label.length > 42 ? k.label.slice(0, 41) + "…" : k.label;
+    const w = ctx.measureText(t).width, x = Math.min(Math.max(p.x + 8, 4), B - w - 4), y = p.y + 4;
+    ctx.fillStyle = "rgba(9,13,22,0.75)"; ctx.fillRect(x - 3, y - 11, w + 6, 15);
+    ctx.fillStyle = k.art === "begriff" ? css.getPropertyValue("--leise") : css.getPropertyValue("--text");
+    if (gross) ctx.fillStyle = knotenFarbe(k);
+    ctx.fillText(t, x, y);
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(zeichnen);
+}
+
+/* ---------- Bedienung: Ziehen, Zoomen, Antippen ---------- */
+const zeiger = new Map(); let start = null, pinch = null;
+function naechster(x, y) {
+  let best = -1, bd = 22 * 22;
+  K.forEach((k, i) => { const p = proj[i], d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd && p.z < 1.5) { bd = d; best = i; } });
+  return best;
+}
+const lokal = (e) => { const r = leinwand.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+leinwand.addEventListener("pointerdown", (e) => {
+  leinwand.setPointerCapture(e.pointerId); zeiger.set(e.pointerId, lokal(e));
+  start = { x: e.clientX, y: e.clientY, bewegt: false }; pauseBis = performance.now() + 5000;
+  if (zeiger.size === 2) { const [a, b] = [...zeiger.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), zoom }; }
+});
+leinwand.addEventListener("pointermove", (e) => {
+  const [x, y] = lokal(e);
+  if (!zeiger.has(e.pointerId)) { if (e.pointerType === "mouse") { hover = naechster(x, y); } return; }
+  const alt = zeiger.get(e.pointerId); zeiger.set(e.pointerId, [x, y]);
+  if (zeiger.size === 2 && pinch) {
+    const [a, b] = [...zeiger.values()];
+    zoom = Math.min(3.5, Math.max(0.5, pinch.zoom * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d)); start.bewegt = true; return;
+  }
+  if (Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) > 6) start.bewegt = true;
+  rotY += (x - alt[0]) * 0.006; rotX = Math.max(-1.4, Math.min(1.4, rotX + (y - alt[1]) * 0.006));
+  pauseBis = performance.now() + 5000;
+});
+const loslassen = (e) => {
+  if (zeiger.has(e.pointerId) && start && !start.bewegt && zeiger.size === 1) {
+    const [x, y] = lokal(e); const i = naechster(x, y); waehlen(i);
+  }
+  zeiger.delete(e.pointerId); if (zeiger.size < 2) pinch = null;
+};
+leinwand.addEventListener("pointerup", loslassen);
+leinwand.addEventListener("pointercancel", (e) => { zeiger.delete(e.pointerId); pinch = null; });
+leinwand.addEventListener("pointerleave", () => { hover = -1; });
+leinwand.addEventListener("wheel", (e) => { e.preventDefault(); zoom = Math.min(3.5, Math.max(0.5, zoom * Math.exp(-e.deltaY * 0.0015))); }, { passive: false });
+
+const knopfDrehen = document.getElementById("drehen");
+const drehenText = () => { knopfDrehen.textContent = autoDrehen ? "Pause" : "Drehen"; };
+drehenText();
+knopfDrehen.onclick = () => { autoDrehen = !autoDrehen; pauseBis = 0; drehenText(); };
+document.getElementById("mitte").onclick = () => { zoom = 1; rotX = -0.25; waehlen(-1); };
+
+/* ---------- Suche ---------- */
+const sucheFeld = document.getElementById("suche"), trefferText = document.getElementById("treffer");
+sucheFeld.addEventListener("input", () => {
+  const q = sucheFeld.value.trim().toLowerCase();
+  if (q.length < 2) { markiert = null; trefferText.textContent = ""; return; }
+  markiert = new Set(); K.forEach((k, i) => { if ((k.label + " " + (k.text || "")).toLowerCase().includes(q)) markiert.add(i); });
+  trefferText.textContent = markiert.size ? `${markiert.size} Treffer` : "nichts gefunden";
+});
+sucheFeld.addEventListener("keydown", (e) => { if (e.key === "Enter" && markiert && markiert.size) waehlen([...markiert][0]); });
+
+/* ---------- Detailspalte ---------- */
+const detail = document.getElementById("detail");
+function waehlen(i) {
+  gewaehlt = i;
+  if (i < 0) { startDetail(); return; }
+  const k = K[i];
+  const liste = [...new Set(nachbarn[i])].sort((a, b) => ["kern", "bereich", "datei", "begriff", "eintrag"].indexOf(K[a].art) - ["kern", "bereich", "datei", "begriff", "eintrag"].indexOf(K[b].art));
+  detail.innerHTML = `
+    <span class="art"><i class="punkt" style="background:${knotenFarbe(k)}"></i>${ART[k.art]}${k.bereich && k.art !== "bereich" ? " · " + esc(K[index.get(k.bereich)]?.label) : ""}</span>
+    <h3>${esc(k.label)}</h3>
+    ${k.text ? `<div class="text">${esc(k.text)}</div>` : ""}
+    ${k.quelle ? `<div class="quelle">${esc(k.quelle)}</div>` : ""}
+    ${liste.length ? `<span class="etikett">Verbunden mit (${liste.length})</span><div class="chips">${liste.slice(0, 40).map((j) =>
+      `<button class="chip" type="button" data-i="${j}"><i class="punkt" style="background:${knotenFarbe(K[j])}"></i><span>${esc(K[j].label)}</span></button>`).join("")}</div>` : ""}
+    <button class="knopf" type="button" data-i="-1">Auswahl aufheben</button>`;
+}
+function startDetail() {
+  const begriffe = K.map((k, i) => [k, i]).filter(([k]) => k.art === "begriff").sort((a, b) => nachbarn[b[1]].length - nachbarn[a[1]].length).slice(0, 14);
+  const bereiche = K.map((k, i) => [k, i]).filter(([k]) => k.art === "bereich");
+  detail.innerHTML = `
+    <span class="etikett">So liest du das Gehirn</span>
+    <h3>Tippe einen Punkt an</h3>
+    <div class="text">Dann siehst du hier den Fakt oder das Wissen dazu, woher es stammt und womit es verbunden ist. Große Punkte sind die Bereiche, kleine die einzelnen Einträge. Graue Punkte sind Begriffe, die in mehreren Dateien vorkommen und sie verbinden.</div>
+    <span class="etikett">Bereiche</span>
+    <div class="chips">${bereiche.map(([k, i]) => `<button class="chip" type="button" data-i="${i}"><i class="punkt" style="background:${knotenFarbe(k)}"></i><span>${esc(k.label)}</span></button>`).join("")}</div>
+    <span class="etikett">Stärkste Begriffe</span>
+    <div class="chips">${begriffe.map(([k, i]) => `<button class="chip" type="button" data-i="${i}"><span>${esc(k.label)}</span><span>${nachbarn[i].length}</span></button>`).join("") || '<span class="leer">Noch keine.</span>'}</div>`;
+}
+detail.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) waehlen(Number(b.dataset.i)); });
+startDetail();
+
+/* ---------- Agenten-Hochhaus ---------- */
+const arbeit = [...DATEN.arbeit].sort((a, b) => new Date(b.zeit) - new Date(a.zeit));
+function figur(farbeAgent) {
+  return `<svg viewBox="0 0 150 100" aria-hidden="true">
+    <rect x="0" y="78" width="150" height="22" fill="rgba(0,0,0,0.25)"/>
+    <rect x="58" y="60" width="80" height="6" rx="2" fill="#2a3756"/>
+    <rect x="66" y="66" width="4" height="22" fill="#2a3756"/><rect x="126" y="66" width="4" height="22" fill="#2a3756"/>
+    <rect x="84" y="24" width="46" height="32" rx="3" fill="#0b1222" stroke="#2f3f62"/>
+    <svg x="88" y="28" width="38" height="24" viewBox="0 0 38 24">
+      <g class="bildschirm-zeile" fill="${farbeAgent}" opacity="0.8">
+        <rect x="2" y="3" width="22" height="2.4" rx="1"/><rect x="2" y="9" width="30" height="2.4" rx="1"/><rect x="2" y="15" width="16" height="2.4" rx="1"/>
+        <rect x="2" y="21" width="26" height="2.4" rx="1"/><rect x="2" y="27" width="20" height="2.4" rx="1"/><rect x="2" y="33" width="28" height="2.4" rx="1"/>
+      </g></svg>
+    <rect x="104" y="56" width="6" height="5" fill="#2f3f62"/>
+    <circle cx="44" cy="30" r="10" fill="${farbeAgent}"/>
+    <rect x="31" y="42" width="26" height="30" rx="10" fill="${farbeAgent}" opacity="0.85"/>
+    <g class="arm"><rect x="50" y="52" width="26" height="7" rx="3.5" fill="${farbeAgent}"/></g>
+    <rect x="28" y="72" width="34" height="5" rx="2" fill="#2a3756"/>
+  </svg>`;
+}
+document.getElementById("fassade").innerHTML = DATEN.agenten.map((a) => {
+  const jobs = arbeit.filter((j) => j.agent === a.id), letzter = jobs[0];
+  const an = letzter && Date.now() - new Date(letzter.zeit).getTime() < 72 * 3600 * 1000;
+  const f = farbe(AGENT_FARBE[a.id]);
+  return `<div class="etage ${an ? "an" : ""}">
+    <div class="fenster">${figur(f)}</div>
+    <div class="info">
+      <div class="zeile1"><h3>${esc(a.name)}</h3><span class="status">${an ? "aktiv" : letzter ? "ruht" : "bereit"}</span></div>
+      <div class="rolle">${esc(a.rolle)} · ${jobs.length} ${jobs.length === 1 ? "Auftrag" : "Aufträge"}</div>
+      <div class="job">${letzter ? `${esc(letzter.was)} <time datetime="${esc(letzter.zeit)}">${vor(letzter.zeit)}</time>` : '<span class="leer">Noch kein Auftrag.</span>'}</div>
+    </div></div>`;
+}).join("");
+const agentName = Object.fromEntries(DATEN.agenten.map((a) => [a.id, a.name]));
+document.getElementById("protokoll").innerHTML = arbeit.slice(0, 30).map((j) => `
+  <li><i class="punkt" style="background:${farbe(AGENT_FARBE[j.agent])}"></i>
+    <div><div class="was">${esc(j.was)}</div><div class="wer">${esc(agentName[j.agent])}</div>
+    <div class="dateien">${j.dateien.slice(0, 4).map(esc).join(" · ")}${j.dateien.length > 4 ? ` · +${j.dateien.length - 4}` : ""}</div></div>
+    <time datetime="${esc(j.zeit)}">${vor(j.zeit)}</time></li>`).join("") || '<li class="leer">Noch keine Arbeit protokolliert.</li>';
+
+requestAnimationFrame(zeichnen);
+</script>

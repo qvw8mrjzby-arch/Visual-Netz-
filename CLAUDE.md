@@ -51,10 +51,17 @@ git fetch origin && git push origin HEAD:refs/heads/$(git remote show origin | s
 
 Schlägt das fehl (Branch weiter), erst `git pull --no-rebase --no-edit origin <Standard-Branch>` (Gehirn-Dateien werden per `.gitattributes` zeilenweise zusammengeführt), dann erneut pushen. Code-Änderungen außerhalb von `gehirn/` gehen wie üblich nur auf den Sitzungs-Branch.
 
+## Dashboard (3D-Gehirn + Agenten-Hochhaus)
+
+Das Gehirn ist als Seite zu sehen: https://claude.ai/artifact/48xkKwWWLmwXRur1AgnDrC
+
+Wurde in einer Sitzung etwas gemerkt, am Ende einmal auffrischen: `python3 dashboard.py`, dann `dashboard/gehirn-dashboard.html` mit dem Artifact-Werkzeug auf genau diese URL veröffentlichen (Parameter `url`, vorher einmal `action: "read"`). Keine neue URL anlegen. Die Agenten im Hochhaus kommen aus der Git-Historie: Merker = `gehirn/fakten`, Archivar = `gehirn/gespraeche`, Schreiber = `gehirn/notizen`, Bibliothekar = `jarvis-wissensnetz/wissen`, PC-Sync = Abgleich-Commits vom PC.
+
 ## Aufbau
 
 ```
 gehirn.py                 Werkzeug: uebersicht, suche, merken, notiz, gespraech
+dashboard.py              baut dashboard/gehirn-dashboard.html (3D-Netz + Agenten) aus dem Repo
 gehirn/fakten/            ein Fakt pro Zeile: "- Datum · Fakt · Quelle: …"
 gehirn/notizen/           längere Notizen
 gehirn/gespraeche/        Zusammenfassungen von Claude-Gesprächen
