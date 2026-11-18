@@ -158,9 +158,9 @@ kbd { font-family: var(--f-daten); font-size: 10.5px; padding: 1px 6px; border-r
   </div>
 
   <nav class="leiste" id="leiste" aria-label="Ansicht steuern">
-    <span class="tipp">Region antippen</span>
     <button type="button" id="b-morph" aria-pressed="false"><kbd>Leertaste</kbd>Gehirn</button>
     <button type="button" id="b-wachsen" aria-pressed="false"><kbd>W</kbd>Wachsen</button>
+    <button type="button" id="b-namen" aria-pressed="true"><kbd>N</kbd>Namen</button>
     <button type="button" id="b-clean" aria-pressed="false"><kbd>C</kbd>Clean View</button>
     <button type="button" id="b-suche" aria-pressed="false"><kbd>/</kbd>Suche</button>
     <input id="suche" type="search" placeholder="z. B. Hook, NEXORA" hidden aria-label="Im Gehirn suchen">
@@ -297,7 +297,7 @@ const HS = Array.from({ length: 700 }, () => ({ x: R(), y: R(), a: 0.08 + R() * 
 /* ---------- Zeichnen ---------- */
 const kosmos = document.getElementById("kosmos"), cv = document.getElementById("himmel"), ctx = cv.getContext("2d");
 let B = 0, H = 0, dpr = 1, rotY = 0, rotX = 0.12, zoom = 1, morph = 0, morphZiel = 0, sichtbar = K.length, wachsenLaeuft = false;
-let gewaehlt = -1, hover = -1, treffer = null, pauseBis = 0;
+let gewaehlt = -1, hover = -1, treffer = null, pauseBis = 0, namenAn = true;
 function groesse() { const r = cv.getBoundingClientRect(); dpr = Math.min(2, devicePixelRatio || 1); B = r.width; H = r.height; cv.width = Math.round(B * dpr); cv.height = Math.round(H * dpr); }
 new ResizeObserver(groesse).observe(cv); groesse();
 
@@ -372,13 +372,46 @@ function zeichnen(jetzt) {
   // Beschriftungen
   const schrift = 1 - Math.min(1, morph * 2.5);
   if (schrift > 0.02 && !kosmos.classList.contains("clean")) {
-    ctx.font = '500 10.5px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = "middle";
+    ctx.textBaseline = "middle";
+    const belegt = [];
+    if (!kosmos.classList.contains("clean")) {  // Begrüßung und Karte freihalten
+      const c = cv.getBoundingClientRect();
+      for (const el of [document.querySelector(".gruss"), karte.hidden ? null : karte]) {
+        if (!el) continue; const r = el.getBoundingClientRect();
+        for (let y = r.top - c.top; y < r.bottom - c.top + 13; y += 12) belegt.push([r.left - c.left - 8, y, r.width + 16]);
+      }
+    }
+    const frei = (x, y, w) => { for (const b of belegt) if (x < b[0] + b[2] && x + w > b[0] && Math.abs(y - b[1]) < 13) return false; return true; };
+    // Galaxie-Namen zuerst reservieren
+    ctx.font = '500 10.5px "JetBrains Mono", ui-monospace, monospace';
+    K.forEach((k, i) => {
+      if (k.art !== "datei" || k.g < 0 || rang[i] >= sichtbar) return;
+      const g = GAL[k.g], j = (T.length + i) * 3, label = `${g.name.toUpperCase()}  ${g.anzahl}`.slice(0, 44), w = ctx.measureText(label).width;
+      belegt.push([Math.min(P[j] + 14, B - w - 12) - 10, P[j + 1] - 16 * P[j + 2] - 4, w + 12]);
+    });
+    if (namenAn) {
+      ctx.font = "400 10.5px Inter, system-ui, sans-serif";
+      const reihenfolge = K.map((_, i) => i).filter((i) => K[i].art !== "datei" && rang[i] < sichtbar).sort((a, b) => P[(T.length + b) * 3 + 2] - P[(T.length + a) * 3 + 2]);
+      for (const i of reihenfolge) {
+        const k = K[i], j = (T.length + i) * 3, s = P[j + 2];
+        if (fokus ? !fokus.has(i) : treffer ? !treffer.has(i) : false) continue;
+        const t = k.label.length > 34 ? k.label.slice(0, 33) + "…" : k.label;
+        const w = ctx.measureText(t).width, x = P[j] + 7, y = P[j + 1];
+        if (x + w > B - 6 || !frei(x, y, w)) continue;
+        belegt.push([x, y, w]);
+        ctx.globalAlpha = schrift * Math.max(0.35, Math.min(0.85, (s - 0.55) * 1.6));
+        ctx.fillStyle = k.art === "begriff" ? "rgba(170,178,200,1)" : "rgba(226,229,238,1)";
+        ctx.fillText(t, x, y);
+      }
+    }
+    ctx.font = '500 10.5px "JetBrains Mono", ui-monospace, monospace';
     K.forEach((k, i) => {
       if (k.art !== "datei" || k.g < 0 || rang[i] >= sichtbar) return;
       const g = GAL[k.g], j = (T.length + i) * 3;
       const label = `${g.name.toUpperCase()}  ${g.anzahl}`.slice(0, 44);
       const breite = ctx.measureText(label).width, x = Math.min(P[j] + 14, B - breite - 12), y = P[j + 1] - 16 * P[j + 2] - 4;
-      ctx.globalAlpha = schrift * (gedimmt(i) ? 0.35 : 0.95);
+      const imKopf = !frei(x - 10, y, 1) && belegt.length && (() => { const r = document.querySelector(".gruss").getBoundingClientRect(), c = cv.getBoundingClientRect(); return x < r.right - c.left && y < r.bottom - c.top; })();
+      ctx.globalAlpha = schrift * (gedimmt(i) ? 0.35 : 0.95) * (imKopf ? 0.25 : 1);
       ctx.fillStyle = g.farbe; ctx.beginPath(); ctx.arc(x - 6, y, 2.6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "rgba(236,238,245,0.92)"; ctx.fillText(label, x + 2, y);
     });
@@ -427,6 +460,7 @@ const bMorph = document.getElementById("b-morph"), bWachsen = document.getElemen
 const sucheFeld = document.getElementById("suche"), zeitleiste = document.getElementById("zeitleiste"), zeit = document.getElementById("zeit"), zeitDatum = document.getElementById("zeit-datum");
 const umschalten = (knopf, an) => knopf.setAttribute("aria-pressed", String(an));
 function gehirnForm() { morphZiel = morphZiel ? 0 : 1; umschalten(bMorph, !!morphZiel); if (morphZiel) waehlen(-1); }
+function namen() { namenAn = !namenAn; umschalten(document.getElementById("b-namen"), namenAn); }
 function clean() { const an = !kosmos.classList.contains("clean"); kosmos.classList.toggle("clean", an); umschalten(bClean, an); }
 function suche() { const an = sucheFeld.hidden; sucheFeld.hidden = !an; umschalten(bSuche, an); if (an) sucheFeld.focus(); else { sucheFeld.value = ""; treffer = null; } }
 function datumZu(r) { const i = reihe[Math.max(0, Math.min(reihe.length - 1, r - 1))]; const d = K[i]?.datum; return d ? new Date(d).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" }) : ""; }
@@ -438,7 +472,7 @@ function wachsen() {
   (function schritt(t) { if (!wachsenLaeuft) return; const f = Math.min(1, (t - t0) / dauer); sichtbar = Math.round(f * K.length); zeigeZeit(); if (f < 1) requestAnimationFrame(schritt); else wachsenLaeuft = false; })(t0);
 }
 zeit.addEventListener("input", () => { wachsenLaeuft = false; sichtbar = Math.round(Number(zeit.value) / 100 * K.length); zeitDatum.textContent = datumZu(sichtbar); });
-bMorph.onclick = gehirnForm; bWachsen.onclick = wachsen; bClean.onclick = clean; bSuche.onclick = suche;
+document.getElementById("b-namen").onclick = namen; bMorph.onclick = gehirnForm; bWachsen.onclick = wachsen; bClean.onclick = clean; bSuche.onclick = suche;
 sucheFeld.addEventListener("input", () => {
   const q = sucheFeld.value.trim().toLowerCase();
   treffer = q.length < 2 ? null : new Set(K.map((k, i) => [k, i]).filter(([k]) => (k.label + " " + (k.text || "") + " " + (k.galaxie_name || "")).toLowerCase().includes(q)).map(([, i]) => i));
@@ -449,6 +483,7 @@ addEventListener("keydown", (e) => {
   if (e.key === " ") { e.preventDefault(); gehirnForm(); }
   else if (e.key === "w" || e.key === "W") wachsen();
   else if (e.key === "c" || e.key === "C") clean();
+  else if (e.key === "n" || e.key === "N") namen();
   else if (e.key === "/") { e.preventDefault(); if (sucheFeld.hidden) suche(); else sucheFeld.focus(); }
   else if (e.key === "Escape") waehlen(-1);
 });
