@@ -86,8 +86,17 @@ kbd { font-family: var(--f-daten); font-size: 10.5px; padding: 1px 6px; border-r
 .zaehler { position: absolute; right: max(24px, env(safe-area-inset-right, 0px)); bottom: max(28px, env(safe-area-inset-bottom, 0px)); font-family: var(--f-daten); font-size: 11px; color: var(--sehr-leise); text-align: right; }
 @media (max-width: 1100px) { .zaehler { display: none; } }
 
+/* ---------- Umschalter Gehirn | Agenten ---------- */
+.tabs { position: fixed; z-index: 20; top: max(14px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; gap: 2px; padding: 4px; border-radius: 12px;
+  background: var(--glas); border: 1px solid var(--glas-rand); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.tabs a { text-decoration: none; color: #c9ccd6; font-size: 13.5px; padding: 7px 14px; border-radius: 9px; display: inline-flex; align-items: center; gap: 8px; }
+.tabs a[aria-current="page"] { background: rgba(255,255,255,0.13); color: var(--text); }
+.tabs .live-punkt { width: 7px; height: 7px; border-radius: 50%; background: #5df2a0; box-shadow: 0 0 8px #5df2a0; display: none; }
+.tabs .live-punkt.an { display: inline-block; animation: blink 1.6s infinite; }
+.karte { top: calc(max(24px, env(safe-area-inset-top, 0px)) + 52px); }
+
 /* ---------- Agenten-Zentrale ---------- */
-.unten { padding-block: 72px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--schwarz); }
+.unten { min-height: 100svh; padding-block: 88px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--schwarz); }
 .unten-innen { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px; }
 .ueberschrift { display: grid; gap: 6px; }
 .ueberschrift .etikett { font-family: var(--f-daten); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--leise); }
@@ -131,9 +140,26 @@ kbd { font-family: var(--f-daten); font-size: 10.5px; padding: 1px 6px; border-r
 .protokoll .dateien { font-family: var(--f-daten); font-size: 11px; color: var(--sehr-leise); overflow-wrap: anywhere; }
 .protokoll time { font-family: var(--f-daten); font-size: 11.5px; color: var(--leise); white-space: nowrap; }
 .fuss { font-size: 12px; color: var(--sehr-leise); }
+.ag-zeile { color: var(--leise); font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.ag-zeile b { color: var(--text); font-weight: 600; }
+.etagen-titel { font-family: var(--f-daten); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--leise); padding: 4px 4px 0; }
+.etage.wartet .fenster { border-color: rgba(255,179,92,0.5); box-shadow: 0 0 22px rgba(255,179,92,0.18); background: linear-gradient(180deg, rgba(255,179,92,0.18), rgba(255,179,92,0.04)); }
+.etage.wartet .status { color: #ffb35c; border-color: rgba(255,179,92,0.5); }
+.etage.fehler .status { color: #ff6b6b; border-color: rgba(255,107,107,0.5); }
+.etage .hinweis { font-size: 12.5px; color: #ffb35c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-box { display: grid; gap: 10px; padding: 16px; border: 1px solid #15171f; border-radius: 12px; background: #07080c; }
+.live-box p { margin: 0; color: var(--leise); font-size: 13.5px; }
+.live-box button { justify-self: start; border: 1px solid var(--glas-rand); background: rgba(255,255,255,0.08); border-radius: 9px; padding: 7px 14px; font-size: 13.5px; cursor: pointer; }
+.live-box button:hover { background: rgba(255,255,255,0.15); }
+.protokoll h3 { font-size: 13px; font-family: var(--f-daten); letter-spacing: 0.14em; text-transform: uppercase; color: var(--leise); font-weight: 500; padding-top: 10px; }
 .leer { color: var(--leise); font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { .antenne::before, .etage.an .arm, .etage.an .zeilen { animation: none; } }
 </style>
+
+<nav class="tabs" aria-label="Ansicht wählen">
+  <a href="#gehirn" id="tab-gehirn" aria-current="page">Gehirn</a>
+  <a href="#agenten" id="tab-agenten"><i class="live-punkt" id="tab-live"></i>Agenten</a>
+</nav>
 
 <section class="kosmos" id="kosmos" aria-label="Gehirn als Sternenkarte">
   <canvas id="himmel" aria-label="Drehbare Sternenkarte: jede Galaxie ist ein Thema, jeder Stern ein Eintrag"></canvas>
@@ -168,16 +194,20 @@ kbd { font-family: var(--f-daten); font-size: 10.5px; padding: 1px 6px; border-r
   <div class="zaehler ui" id="zaehler"></div>
 </section>
 
-<section class="unten" aria-label="Agenten-Zentrale">
+<section class="unten" id="agenten-ansicht" aria-label="Agenten-Zentrale" hidden>
   <div class="unten-innen">
-    <div class="ueberschrift"><span class="etikett">Agenten-Zentrale</span><h2>Wer zuletzt am Gehirn gearbeitet hat</h2></div>
+    <div class="ueberschrift"><span class="etikett">Agenten-Zentrale · live</span><h2>Wer gerade arbeitet</h2><div class="ag-zeile" id="ag-zeile"></div></div>
     <div class="zentrale">
       <div class="haus">
         <div class="dach"><div class="antenne"></div><div class="schild">JARVIS</div></div>
         <div class="fassade" id="fassade"></div>
         <div class="boden"></div>
       </div>
-      <div class="protokoll"><ol id="protokoll"></ol></div>
+      <div class="protokoll">
+        <div class="live-box" id="live-box"><p>Hier erscheinen deine laufenden Claude-Sitzungen als Agenten im Hochhaus, mit dem, woran sie gerade arbeiten. Aktualisiert sich etwa alle 30 Sekunden.</p><button type="button" id="live-an">Live-Agenten verbinden</button></div>
+        <h3>Protokoll</h3>
+        <ol id="protokoll"></ol>
+      </div>
     </div>
     <p class="fuss" id="fuss"></p>
   </div>
@@ -318,6 +348,7 @@ function projizieren(arr, off, m) {
 
 let zeitAlt = performance.now();
 function zeichnen(jetzt) {
+  if (kosmos.hidden) { zeitAlt = jetzt; requestAnimationFrame(zeichnen); return; }
   const dt = Math.min(50, jetzt - zeitAlt); zeitAlt = jetzt;
   if (!ruhig && jetzt > pauseBis) rotY += dt * 0.00004;
   morph += (morphZiel - morph) * Math.min(1, dt * 0.0022);
@@ -538,8 +569,9 @@ karte.addEventListener("click", (e) => { const b = e.target.closest("[data-i]");
   });
 })();
 
-/* ---------- Agenten-Hochhaus ---------- */
+/* ---------- Agenten-Hochhaus (live) ---------- */
 const AGENT_FARBE = { merker: "#ff8f5c", archivar: "#5df2a0", schreiber: "#ffe066", bibliothekar: "#6f8dff", sync: "#4fe3ff" };
+const SITZUNG_FARBEN = ["#b48cff", "#4fe3ff", "#ff5fc8", "#8cf26a", "#ffb35c", "#6f8dff", "#ff6b6b", "#3ee0b8"];
 function vor(iso) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000; if (!isFinite(s)) return "";
   if (s < 90) return "gerade eben"; const m = s / 60, h = m / 60, d = h / 24;
@@ -553,17 +585,99 @@ function figur(f) {
     <circle cx="44" cy="30" r="9.5" fill="${f}"/><rect x="31" y="42" width="26" height="30" rx="10" fill="${f}" opacity="0.85"/><g class="arm"><rect x="50" y="52" width="26" height="6" rx="3" fill="${f}"/></g><rect x="28" y="72" width="34" height="4" rx="2" fill="#1c1f29"/></svg>`;
 }
 const arbeit = [...DATEN.arbeit].sort((a, b) => new Date(b.zeit) - new Date(a.zeit));
-document.getElementById("fassade").innerHTML = DATEN.agenten.map((a) => {
+const agentName = Object.fromEntries(DATEN.agenten.map((a) => [a.id, a.name]));
+let sitzungen = null, liveMeldungen = [];
+const STATUS = {
+  SESSION_STATUS_BUCKET_WORKING: ["arbeitet", "an"], SESSION_STATUS_BUCKET_BLOCKED: ["wartet auf dich", "wartet"],
+  SESSION_STATUS_BUCKET_REVIEW_READY: ["fertig · ansehen", ""], SESSION_STATUS_BUCKET_COMPLETED: ["fertig", ""], SESSION_STATUS_BUCKET_FAILED: ["Fehler", "fehler"],
+};
+function etageSitzung(z, i) {
+  const [text, klasse] = STATUS[z.status_bucket] || ["ruht", ""], pts = z.post_turn_summary || {};
+  const meldung = liveMeldungen.find((m) => m.sitzung && z.id && m.sitzung === z.id);
+  const was = meldung?.aufgabe || pts.recent_action || "";
+  return `<div class="etage ${klasse}"><div class="fenster">${figur(SITZUNG_FARBEN[i % SITZUNG_FARBEN.length])}</div><div class="info">
+    <div class="zeile1"><h3>${esc(z.title || "Claude-Sitzung")}</h3><span class="status">${text}</span></div>
+    <div class="rolle">${esc(z.origin === "ios" ? "iPad/iPhone" : z.environment_kind === "bridge" ? "auf dem PC" : "Cloud")} · ${vor(z.updated_at)}</div>
+    ${pts.needs_action ? `<div class="hinweis">Du: ${esc(pts.needs_action)}</div>` : was ? `<div class="job">${esc(was)}</div>` : ""}</div></div>`;
+}
+function etageGehirn(a) {
   const jobs = arbeit.filter((j) => j.agent === a.id), letzter = jobs[0], an = letzter && Date.now() - new Date(letzter.zeit).getTime() < 72 * 3600 * 1000;
   return `<div class="etage ${an ? "an" : ""}"><div class="fenster">${figur(AGENT_FARBE[a.id])}</div><div class="info">
     <div class="zeile1"><h3>${esc(a.name)}</h3><span class="status">${an ? "aktiv" : letzter ? "ruht" : "bereit"}</span></div>
     <div class="rolle">${esc(a.rolle)} · ${jobs.length} ${jobs.length === 1 ? "Auftrag" : "Aufträge"}</div>
     <div class="job">${letzter ? `${esc(letzter.was)} <time datetime="${esc(letzter.zeit)}">${vor(letzter.zeit)}</time>` : '<span class="leer">Noch kein Auftrag.</span>'}</div></div></div>`;
-}).join("");
-const agentName = Object.fromEntries(DATEN.agenten.map((a) => [a.id, a.name]));
-document.getElementById("protokoll").innerHTML = arbeit.slice(0, 30).map((j) => `<li><i class="punkt" style="color:${AGENT_FARBE[j.agent]};background:currentColor"></i>
-  <div><div class="was">${esc(j.was)}</div><div class="wer">${esc(agentName[j.agent])}</div><div class="dateien">${j.dateien.slice(0, 4).map(esc).join(" · ")}${j.dateien.length > 4 ? ` · +${j.dateien.length - 4}` : ""}</div></div>
-  <time datetime="${esc(j.zeit)}">${vor(j.zeit)}</time></li>`).join("") || '<li class="leer">Noch keine Arbeit protokolliert.</li>';
+}
+function hausZeichnen() {
+  const live = (sitzungen || []).filter((z) => z.status_bucket !== "SESSION_STATUS_BUCKET_COMPLETED" || Date.now() - new Date(z.updated_at).getTime() < 24 * 3600 * 1000).slice(0, 8);
+  const arbeiten = live.filter((z) => z.status_bucket === "SESSION_STATUS_BUCKET_WORKING").length, warten = live.filter((z) => z.status_bucket === "SESSION_STATUS_BUCKET_BLOCKED").length;
+  document.getElementById("tab-live").classList.toggle("an", arbeiten > 0);
+  document.getElementById("ag-zeile").innerHTML = sitzungen
+    ? `<span><b>${arbeiten}</b> arbeiten gerade</span><span><b>${warten}</b> warten auf dich</span><span><b>${live.length}</b> Sitzungen der letzten 24 Std.</span>`
+    : `<span>Gehirn-Agenten aus dem Repo; Live-Sitzungen noch nicht verbunden</span>`;
+  document.getElementById("fassade").innerHTML =
+    (live.length ? `<div class="etagen-titel">Claude-Sitzungen</div>${live.map(etageSitzung).join("")}` : "") +
+    `<div class="etagen-titel">Gehirn-Agenten</div>${DATEN.agenten.map(etageGehirn).join("")}`;
+  const eintraege = [
+    ...liveMeldungen.map((m) => ({ zeit: m.zeit, was: m.aufgabe, wer: m.agent || "Claude", farbe: "#5df2a0", dateien: m.schritt ? [m.schritt] : [] })),
+    ...arbeit.map((j) => ({ zeit: j.zeit, was: j.was, wer: agentName[j.agent], farbe: AGENT_FARBE[j.agent], dateien: j.dateien })),
+  ].sort((a, b) => new Date(b.zeit) - new Date(a.zeit)).slice(0, 30);
+  document.getElementById("protokoll").innerHTML = eintraege.map((j) => `<li><i class="punkt" style="color:${j.farbe};background:currentColor"></i>
+    <div><div class="was">${esc(j.was)}</div><div class="wer">${esc(j.wer)}</div><div class="dateien">${(j.dateien || []).slice(0, 4).map(esc).join(" · ")}${(j.dateien || []).length > 4 ? ` · +${j.dateien.length - 4}` : ""}</div></div>
+    <time datetime="${esc(j.zeit)}">${vor(j.zeit)}</time></li>`).join("") || '<li class="leer">Noch keine Arbeit protokolliert.</li>';
+}
+hausZeichnen();
+
+function sitzungenAus(result) {
+  let d = result?.payload;
+  if (!d && Array.isArray(result?.content)) { const t = result.content.find((c) => c.type === "text")?.text; try { d = JSON.parse(t); } catch { d = null; } }
+  return d?.ccr?.data || d?.data || (Array.isArray(d) ? d : null);
+}
+const liveBox = document.getElementById("live-box");
+async function liveVerbinden(vomKlick) {
+  const mcp = await (window.claude?.use?.("mcp") ?? Promise.resolve(null)).catch(() => null);
+  if (!mcp) { liveBox.innerHTML = "<p>Live-Agenten gehen nur in der claude.ai-Ansicht mit deinem Konto.</p>"; return; }
+  liveBox.innerHTML = "<p>Verbinde mit deinen Claude-Sitzungen …</p>";
+  mcp.watchTool("Claude Code Remote", "list_sessions", { mine: true, limit: 20 }, (ev) => {
+    if (ev.type === "data") {
+      const liste = sitzungenAus(ev.result);
+      if (!liste) { liveBox.innerHTML = "<p>Antwort kam an, aber ohne Sitzungsliste.</p>"; return; }
+      sitzungen = liste; liveBox.hidden = true; try { localStorage.setItem("live-agenten", "1"); } catch {}
+      hausZeichnen();
+    } else {
+      const c = ev.error?.code;
+      liveBox.hidden = false;
+      liveBox.innerHTML = c === "not_granted" || c === "denied"
+        ? "<p>Zugriff nicht erlaubt. Über das Berechtigungs-Menü der Seite kannst du ihn später freigeben.</p>"
+        : c === "server_not_connected" ? "<p>Der Connector „Claude Code Remote“ ist in deinem Konto nicht verbunden.</p>"
+        : `<p>Live-Daten gerade nicht erreichbar (${esc(c || "Fehler")}). Es wird weiter versucht.</p>`;
+    }
+  }, { refetchInterval: 20000, cache: { staleTime: 15000 } });
+}
+document.getElementById("live-an").onclick = () => liveVerbinden(true);
+try { if (localStorage.getItem("live-agenten") === "1") liveVerbinden(false); } catch {}
+
+/* Statusmeldungen, die Claude-Sitzungen selbst schreiben (Sammlung "live") */
+(async function meldungen() {
+  const db = await (window.claude?.use?.("db") ?? Promise.resolve(null)).catch(() => null);
+  if (!db) return;
+  db.collection("live").orderBy("zeit", "desc").limit(30).onSnapshot((snap) => {
+    liveMeldungen = snap.docs.map((d) => d.data() || {}).filter((m) => m.aufgabe);
+    hausZeichnen();
+  }, () => {});
+})();
+setInterval(hausZeichnen, 60000);
+
+/* ---------- Ansicht umschalten (#gehirn / #agenten) ---------- */
+const agentenAnsicht = document.getElementById("agenten-ansicht");
+function ansicht() {
+  const ag = location.hash === "#agenten";
+  kosmos.hidden = ag; agentenAnsicht.hidden = !ag;
+  document.getElementById("tab-gehirn").toggleAttribute("aria-current", !ag);
+  document.getElementById("tab-agenten").toggleAttribute("aria-current", ag);
+  if (ag) { document.getElementById("tab-agenten").setAttribute("aria-current", "page"); window.scrollTo(0, 0); hausZeichnen(); }
+  else document.getElementById("tab-gehirn").setAttribute("aria-current", "page");
+}
+addEventListener("hashchange", ansicht); ansicht();
 
 requestAnimationFrame(zeichnen);
 </script>
